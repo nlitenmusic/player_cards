@@ -1,3 +1,28 @@
+# player-cards-next
+
+This is the Player Cards Next.js app (admin UI + frontend). Repo prepared for pushing to GitHub.
+
+Staging / Vercel deployment
+- See `vercel.json` and `DEPLOYMENT.md` for quick deploy steps.
+
+Local dev
+- Install: `npm install`
+- Run: `npm run dev`
+
+Push instructions
+1. Initialize git (if not already):
+
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/nlitenmusic/player_cards.git
+   git push -u origin main
+   ```
+
+Notes
+- Make sure to add any secret environment variables (Supabase keys) in Vercel or in local `.env` files (do not commit secrets).
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

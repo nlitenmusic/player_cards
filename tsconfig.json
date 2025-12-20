@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@player-cards/kit": ["./kit/src"]
     }
   },
   "include": [
