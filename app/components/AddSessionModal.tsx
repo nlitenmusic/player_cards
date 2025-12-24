@@ -34,6 +34,7 @@ export default function AddSessionModal({
   const currentContext = useRef<{ skill: string; component: string; value: number | null } | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const [modalWidth, setModalWidth] = useState<number>(840);
+  
 
   // Controlled hover lifecycle: debounced show, delayed hide; supports entering panel
   function clearShowTimer() {
@@ -79,6 +80,11 @@ export default function AddSessionModal({
     updateWidth();
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  useEffect(() => {
+    // no-op: previously handled click-outside for quick-fill dropdown
+    return () => {};
   }, []);
 
   // load latest session components for this player
@@ -230,6 +236,37 @@ export default function AddSessionModal({
     });
   }
 
+  // Minimal quick-fill helper (numeric input only)
+
+  function computeAndApplyQuickFill(idx: number, target: number) {
+    const row = rows[idx];
+    if (!row) return;
+    const key = String(row.skill_type ?? '').trim().toLowerCase();
+    const t = Math.round(target);
+    if (key === 'movement') {
+      updateCell(idx, 't', String(t));
+      return;
+    }
+    const comps: (keyof ComponentRow)[] = ['c','p','a','s','t'];
+    for (const k of comps) updateCell(idx, k, String(t));
+  }
+
+  // Increment/decrement a specific component cell by delta (±1).
+  function changeComponentBy(idx: number, key: keyof ComponentRow, delta: number) {
+    setRows((prev) => {
+      const out = [...prev];
+      const cur = out[idx]?.[key];
+      const base = cur == null || Number.isNaN(Number(cur)) ? 0 : Number(cur);
+      let next = Math.round(base) + delta;
+      next = Math.max(0, Math.min(45, next));
+      out[idx] = { ...out[idx], [key]: next };
+      return out;
+    });
+  }
+
+  // per-row custom quick-fill numeric input state
+  const [customQuickFill, setCustomQuickFill] = useState<Record<number, string>>({});
+
   const submit = async () => {
     setError(null);
 
@@ -296,6 +333,55 @@ export default function AddSessionModal({
     }
   };
 
+  // Render the band key panel content. This ensures hovered content and
+  // the default band key share identical formatting and layout.
+  const renderBandPanelContent = () => {
+    const defaultGrid = (
+      <div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Band key</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+          <div style={{ fontSize: 13 }}><strong>Unstable</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(0–6)</span>: Frequent errors; contact/timing vary</div>
+          <div style={{ fontSize: 13 }}><strong>Conditional</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(7–12)</span>: Works in controlled settings; breaks under pressure</div>
+          <div style={{ fontSize: 13 }}><strong>Functional</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(13–18)</span>: Reliable vs peers; may degrade under stress</div>
+          <div style={{ fontSize: 13 }}><strong>Competitive</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(19–24)</span>: Performance holds up in match play</div>
+          <div style={{ fontSize: 13 }}><strong>Advanced / Pro-Track</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(25–30)</span>: Advanced, maintains under fatigue and tactics</div>
+          <div style={{ fontSize: 13 }}><strong>Tour Reference</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(31+)</span>: Elite, baseline for top-level play</div>
+        </div>
+      </div>
+    );
+
+    if (!hoveredBand) return defaultGrid;
+
+    const sk = normalizeKey(hoveredBand.skill);
+    const compKey = normalizeKey(hoveredBand.component);
+    const compMap: Record<string, string> = { c: 'consistency', p: 'power', a: 'accuracy', s: 'spin', t: 'technique' };
+    const canonicalComp = compMap[compKey] || compKey;
+    const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+    const bands = skillEntry ? (skillEntry[compKey] || skillEntry[canonicalComp]) : null;
+    if (!bands || !Array.isArray(bands)) return defaultGrid;
+
+    const formatRange = (min: number, max: number) => (typeof max === 'number' && max >= 100 ? `${min}+` : `${min}–${max}`);
+    const hoveredVal = hoveredBand.value;
+
+    return (
+      <div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{hoveredBand.skill} — {canonicalComp.charAt(0).toUpperCase() + canonicalComp.slice(1)}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+          {bands.map((b: any) => {
+            const active = hoveredVal != null && hoveredVal >= b.min && hoveredVal <= b.max;
+            return (
+              <div key={`${b.min}-${b.max}`} style={{ fontSize: 13, padding: '6px 0' }}>
+                <span style={{ fontWeight: active ? 700 : 600 }}>{b.name}</span>
+                <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>({formatRange(b.min, b.max)})</span>
+                <span style={{ marginLeft: 8, color: '#374151' }}>: {b.description}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000 }}>
       <div ref={modalRef} style={{ background: "#fff", padding: 16, borderRadius: 8, width: 840, maxWidth: "96%", maxHeight: "90%", overflow: "auto" }}>
@@ -352,25 +438,47 @@ export default function AddSessionModal({
                 const displayComputed = computed == null ? '' : Math.round(computed * 100) / 100;
                 return (
                   <tr key={r.skill_type}>
-                    <td style={{ padding: 6 }}>{r.skill_type}</td>
+                      <td style={{ padding: 6, position: 'relative' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontWeight: 600, padding: '4px 8px', borderRadius: 6 }}>{r.skill_type}</div>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <input aria-label={`Custom quick fill ${r.skill_type}`} type="number" min={0} max={45} value={customQuickFill[idx] ?? ''} onChange={(e) => setCustomQuickFill({ ...customQuickFill, [idx]: e.target.value })} placeholder="0–45" style={{ width: 80, padding: '4px 6px', fontSize: 12 }} onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const v = Number((e.target as HTMLInputElement).value);
+                                if (!Number.isFinite(v)) return;
+                                const clamped = Math.max(0, Math.min(45, Math.round(v)));
+                                computeAndApplyQuickFill(idx, clamped);
+                                setCustomQuickFill({ ...customQuickFill, [idx]: '' });
+                              }
+                            }} />
+                            <button
+                              type="button"
+                              aria-label={`Apply quick-fill for ${r.skill_type}`}
+                              onClick={() => {
+                                const raw = customQuickFill[idx];
+                                const v = Number(raw);
+                                if (!Number.isFinite(v)) return;
+                                const clamped = Math.max(0, Math.min(45, Math.round(v)));
+                                computeAndApplyQuickFill(idx, clamped);
+                                setCustomQuickFill({ ...customQuickFill, [idx]: '' });
+                              }}
+                              style={{ padding: '6px 10px', fontSize: 12, background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                            >
+                              Apply
+                            </button>
+                          </div>
+                        </div>
+                      </td>
                     <td style={{ padding: 6 }}>
-                      <div style={{ position: 'relative', width: 120 }}>
-                        <select style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.c ?? ""} onChange={(e) => updateCell(idx, "c", e.target.value)}>
-                          <option value="">(blank)</option>
-                          {Array.from({ length: 36 }).map((_, n) => {
-                            const val = n;
-                            const skillName = String(r.skill_type ?? skillLabels[idx] ?? '').trim();
-                            const band = getBand(skillName, 'c', val);
-                            return (
-                              <option key={val} value={String(val)}>
-                                {val} — {band.name}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
+                      <div style={{ position: 'relative', width: 80 }}>
+                        <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.c ?? ""} onChange={(e) => updateCell(idx, "c", e.target.value)} />
+                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                          </div>
                           <BandTooltip value={r.c ?? ''} skill={r.skill_type} component="c" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
                           </BandTooltip>
                         </div>
                       </div>
@@ -378,9 +486,13 @@ export default function AddSessionModal({
                     <td style={{ padding: 6 }}>
                       <div style={{ position: 'relative', width: 80 }}>
                         <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.p ?? ""} onChange={(e) => updateCell(idx, "p", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
+                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                          </div>
                           <BandTooltip value={r.p ?? ''} skill={r.skill_type} component="p" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
                           </BandTooltip>
                         </div>
                       </div>
@@ -388,9 +500,13 @@ export default function AddSessionModal({
                     <td style={{ padding: 6 }}>
                       <div style={{ position: 'relative', width: 80 }}>
                         <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.a ?? ""} onChange={(e) => updateCell(idx, "a", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
+                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                          </div>
                           <BandTooltip value={r.a ?? ''} skill={r.skill_type} component="a" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
                           </BandTooltip>
                         </div>
                       </div>
@@ -398,9 +514,13 @@ export default function AddSessionModal({
                     <td style={{ padding: 6 }}>
                       <div style={{ position: 'relative', width: 80 }}>
                         <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.s ?? ""} onChange={(e) => updateCell(idx, "s", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
+                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                          </div>
                           <BandTooltip value={r.s ?? ''} skill={r.skill_type} component="s" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
                           </BandTooltip>
                         </div>
                       </div>
@@ -408,9 +528,13 @@ export default function AddSessionModal({
                     <td style={{ padding: 6 }}>
                       <div style={{ position: 'relative', width: 80 }}>
                         <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.t ?? ""} onChange={(e) => updateCell(idx, "t", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }}>
+                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                          </div>
                           <BandTooltip value={r.t ?? ''} skill={r.skill_type} component="t" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
                           </BandTooltip>
                         </div>
                       </div>
@@ -423,54 +547,19 @@ export default function AddSessionModal({
           </table>
         </div>
 
+        {/* Static band key removed — the bottom Band key panel updates on hover */}
+
         {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
 
-        {/* Band Details panel rendered in a portal to avoid layout reflow */}
-        {hoveredBand && (typeof document !== 'undefined') ? (() => {
-          const sk = normalizeKey(hoveredBand.skill);
-          const compKey = normalizeKey(hoveredBand.component);
-          const compMap: Record<string, string> = { c: 'consistency', p: 'power', a: 'accuracy', s: 'spin', t: 'technique' };
-          const canonicalComp = compMap[compKey] || compKey;
-          const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
-          const bands = skillEntry ? (skillEntry[compKey] || skillEntry[canonicalComp]) : null;
-          if (!bands || !Array.isArray(bands)) return null;
-
-          const formatRange = (min: number, max: number) => (typeof max === 'number' && max >= 100 ? `${min}+` : `${min}–${max}`);
-          const hoveredVal = hoveredBand.value;
-
-          const panel = (
-            <div style={{ position: 'fixed', bottom: '6vh', left: '50%', transform: 'translateX(-50%)', width: modalWidth, maxWidth: '96vw', zIndex: 11000, pointerEvents: 'auto' }}>
-              <div style={{ background: '#0f172a', color: '#fff', padding: 12, borderRadius: 8, maxHeight: 220, overflow: 'hidden', boxShadow: '0 8px 24px rgba(15,23,42,0.6)' }}>
-                    <div style={{ position: 'sticky', top: 0, background: '#0f172a', zIndex: 2, paddingBottom: 8 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 8, color: '#fff' }}>{hoveredBand.skill} — {canonicalComp.charAt(0).toUpperCase() + canonicalComp.slice(1)}</div>
-                    </div>
-                    <div style={{ maxHeight: 160, overflowY: 'auto', paddingRight: 6 }}>
-                      {bands.map((b: any) => {
-                        const active = hoveredVal != null && hoveredVal >= b.min && hoveredVal <= b.max;
-                        return (
-                          <div key={`${b.min}-${b.max}`} style={{ display: 'flex', gap: 12, padding: '8px 6px', alignItems: 'flex-start', background: active ? 'rgba(59,130,246,0.12)' : 'transparent', borderLeft: active ? '3px solid #3b82f6' : '3px solid transparent', marginBottom: 6, borderRadius: 4 }}>
-                            <div style={{ minWidth: 72, fontWeight: 700, color: '#fff' }}>{formatRange(b.min, b.max)}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: active ? 700 : 600, color: active ? '#fff' : '#f1f5f9' }}>{b.name}</div>
-                              <div style={{ fontSize: 13, color: active ? '#fff' : '#d1d5db' }}>{b.description}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-            </div>
-          );
-
-          // attach mouse handlers so the panel counts as part of the interaction zone
-          const panelWithHandlers = (
-            <div onMouseEnter={() => { clearHideTimer(); }} onMouseLeave={() => { scheduleHide(); }} onFocus={() => { clearHideTimer(); }} onBlur={() => { scheduleHide(); }}>
-              {panel}
-            </div>
-          );
-
-          return createPortal(panelWithHandlers, document.body);
-        })() : null}
+        <div style={{ marginTop: 12 }}>
+          <div
+            style={{ background: '#f8fafc', padding: 10, borderRadius: 8, border: '1px solid #e6edf3' }}
+            onMouseEnter={() => { clearHideTimer(); }}
+            onMouseLeave={() => { scheduleHide(); }}
+          >
+            {renderBandPanelContent()}
+          </div>
+        </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
           <button onClick={() => { setRows(skillLabels.map((label) => ({ skill_type: label, c: null, p: null, a: null, s: null, t: null }))); }} style={{ padding: "8px 12px" }} disabled={loading}>Clear</button>
