@@ -88,11 +88,51 @@ const commonBands = {
 
 const referenceKey: Record<string, Record<string, Band[]>> = {
   serve,
-  return: commonBands,
+  // Return uses most common bands but return consistency has return-specific descriptions
+  return: {
+    consistency: [
+      { min: 0, max: 6, name: "Unstable", description: "Frequent errors caused by inconsistent contact, timing, or balance" },
+      { min: 7, max: 12, name: "Conditional", description: "Reliable in controlled settings; breaks down under pace or movement" },
+      { min: 13, max: 18, name: "Functional", description: "Consistently gets returns in play vs peers; depth and direction vary under pressure" },
+      { min: 19, max: 24, name: "Competitive", description: "Return reliability holds in match play and under pressure" },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Maintains consistency under pace, movement, and fatigue" },
+      { min: 31, max: 100, name: "Tour Reference", description: "Consistency is assumed; outcomes driven by intent" },
+    ],
+    power: commonBands.power,
+    accuracy: commonBands.accuracy,
+    spin: commonBands.spin,
+    technique: commonBands.technique,
+  },
   forehand: commonBands,
   backhand: commonBands,
-  volley: commonBands,
-  overhead: commonBands,
+  volley: {
+    consistency: [
+      { min: 0, max: 6, name: "Unstable", description: "Frequent errors caused by inconsistent contact, timing, or balance" },
+      { min: 7, max: 12, name: "Conditional", description: "Reliable in controlled settings; breaks down under pace or movement" },
+      { min: 13, max: 18, name: "Functional", description: "Executes volleys reliably; shot outcomes are dependable with predictable miss patterns" },
+      { min: 19, max: 24, name: "Competitive", description: "Shot reliability holds in match play and under pressure" },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Maintains consistency under pace, movement, and fatigue" },
+      { min: 31, max: 100, name: "Tour Reference", description: "Consistency is assumed; outcomes driven by intent" },
+    ],
+    power: commonBands.power,
+    accuracy: commonBands.accuracy,
+    spin: commonBands.spin,
+    technique: commonBands.technique,
+  },
+  overhead: {
+    consistency: [
+      { min: 0, max: 6, name: "Unstable", description: "Frequent errors caused by inconsistent contact, timing, or balance" },
+      { min: 7, max: 12, name: "Conditional", description: "Reliable in controlled settings; breaks down under pace or movement" },
+      { min: 13, max: 18, name: "Functional", description: "Executes overheads reliably; shot outcomes are dependable with predictable miss patterns" },
+      { min: 19, max: 24, name: "Competitive", description: "Shot reliability holds in match play and under pressure" },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Maintains consistency under pace, movement, and fatigue" },
+      { min: 31, max: 100, name: "Tour Reference", description: "Consistency is assumed; outcomes driven by intent" },
+    ],
+    power: commonBands.power,
+    accuracy: commonBands.accuracy,
+    spin: commonBands.spin,
+    technique: commonBands.technique,
+  },
   movement: {
     technique: [
       { min: 0, max: 6, name: "Unstable", description: "Arrives late or off-balance, compromising stroke execution" },
