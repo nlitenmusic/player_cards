@@ -34,12 +34,12 @@ const serve = {
     { min: 31, max: 100, name: "Tour Reference", description: "Spin disguises intent and manipulates returner positioning" },
   ],
   technique: [
-    { min: 0, max: 6, name: "Unstable", description: "Serve motion varies significantly between repetitions" },
-    { min: 7, max: 12, name: "Conditional", description: "Motion holds in drills but degrades under stress or fatigue" },
-    { min: 13, max: 18, name: "Functional", description: "Motion is repeatable across sessions and environments" },
-    { min: 19, max: 24, name: "Competitive", description: "Technique remains intact under match pressure" },
-    { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Technique holds even when tactically manipulated" },
-    { min: 31, max: 100, name: "Tour Reference", description: "Technique is fully integrated and invisible in execution" },
+    { min: 0, max: 6, name: "Unstable", description: "Toss, leg drive, and contact timing are inconsistent; motion is inefficient and recovery is slow." },
+    { min: 7, max: 12, name: "Conditional", description: "Toss quality and weight transfer are uneven; serve mechanics hold in practice but fail under pressure, reducing efficiency." },
+    { min: 13, max: 18, name: "Functional", description: "Repeatable toss and coordinated leg drive produce consistent contact; pronation and follow-through are efficient enough for reliable serves." },
+    { min: 19, max: 24, name: "Competitive", description: "Precise toss, effective leg drive, and coordinated kinetic chain deliver consistent serves under match pressure with minimal wasted motion." },
+    { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Toss precision, explosive but controlled leg drive, and optimized pronation/uncoil produce powerful yet economical serves with quick recovery." },
+    { min: 31, max: 100, name: "Tour Reference", description: "Toss, leg drive, timing, and wrist/pronation are finely tuned; serves are maximally efficient, repeatable, and weaponized." },
   ],
 };
 
@@ -77,12 +77,12 @@ const commonBands = {
     { min: 31, max: 100, name: "Tour Reference", description: "Spin disguises intent and controls exchanges" },
   ],
   technique: [
-    { min: 0, max: 6, name: "Unstable", description: "Mechanical execution varies significantly between reps" },
-    { min: 7, max: 12, name: "Conditional", description: "Technique holds until rushed or pressured" },
-    { min: 13, max: 18, name: "Functional", description: "Mechanics are repeatable across sessions" },
-    { min: 19, max: 24, name: "Competitive", description: "Technique holds under match stress" },
-    { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Technique remains stable under tactical stress" },
-    { min: 31, max: 100, name: "Tour Reference", description: "Technique is fully automated and invisible" },
+    { min: 0, max: 6, name: "Unstable", description: "Mechanical execution varies significantly between reps; often inefficient and wasteful of energy." },
+    { min: 7, max: 12, name: "Conditional", description: "Technique holds until rushed or pressured; efficiency is inconsistent and effort may spike." },
+    { min: 13, max: 18, name: "Functional", description: "Mechanics are repeatable across sessions and performed with reasonable efficiency." },
+    { min: 19, max: 24, name: "Competitive", description: "Technique holds under match stress and is delivered with efficient energy use." },
+    { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Technique remains stable under tactical stress and is economical in movement and effort." },
+    { min: 31, max: 100, name: "Tour Reference", description: "Technique is fully automated and invisible, maximizing efficiency and economy." },
   ],
 };
 
@@ -103,8 +103,28 @@ const referenceKey: Record<string, Record<string, Band[]>> = {
     spin: commonBands.spin,
     technique: commonBands.technique,
   },
-  forehand: commonBands,
-  backhand: commonBands,
+  forehand: {
+    ...commonBands,
+    technique: [
+      { min: 0, max: 6, name: "Unstable", description: "Preparation and weight transfer are inconsistent; swings are long and wasteful, reducing power and recovery." },
+      { min: 7, max: 12, name: "Conditional", description: "Preparation is sometimes adequate but breaks under pressure; weight transfer and timing can be inefficient." },
+      { min: 13, max: 18, name: "Functional", description: "Prepares early with solid weight transfer and efficient follow-through, enabling consistent recovery." },
+      { min: 19, max: 24, name: "Competitive", description: "Compact preparation, reliable weight transfer, and efficient footwork allow sustained aggression without wasted motion." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Maximizes kinetic chain use with minimal excess movement; adjusts swing length for control and efficiency." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Swing timing, energy use, and recovery are optimized; movement and stroke are economical and effortless." },
+    ],
+  },
+  backhand: {
+    ...commonBands,
+    technique: [
+      { min: 0, max: 6, name: "Unstable", description: "Swing mechanics and grip changes are inconsistent; motion is inefficient and recovery is slow." },
+      { min: 7, max: 12, name: "Conditional", description: "Mechanics hold in controlled settings but efficiency degrades under pressure or when stretched." },
+      { min: 13, max: 18, name: "Functional", description: "Mechanics are repeatable and use efficient core and arm sequencing for reliable recovery." },
+      { min: 19, max: 24, name: "Competitive", description: "Compact preparation, strong core engagement, and efficient footwork support consistent, economical execution." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Optimizes kinetic chain and minimal unnecessary movement; adapts grip and swing length efficiently." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Backhand is delivered with precise timing, efficiency, and effortless recovery under pressure." },
+    ],
+  },
   volley: {
     consistency: [
       { min: 0, max: 6, name: "Unstable", description: "Frequent errors caused by inconsistent contact, timing, or balance" },
@@ -114,10 +134,31 @@ const referenceKey: Record<string, Record<string, Band[]>> = {
       { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Maintains consistency under pace, movement, and fatigue" },
       { min: 31, max: 100, name: "Tour Reference", description: "Consistency is assumed; outcomes driven by intent" },
     ],
-    power: commonBands.power,
+    power: [
+      { min: 0, max: 6, name: "Unstable", description: "Power attempts disrupt balance and contact quality; swinging for pace often causes errors on volleys." },
+      { min: 7, max: 12, name: "Conditional", description: "Can add pace occasionally but not on demand; timing and compactness are inconsistent." },
+      { min: 13, max: 18, name: "Functional", description: "Adds compact punch on short or readable balls to finish points or force weak replies." },
+      { min: 19, max: 24, name: "Competitive", description: "Uses controlled acceleration and placement so volley pace translates into match play advantage." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Scales punch by situation and opponent, mixing soft and firm touches to finish or create openings." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Volley pace is leveraged precisely to create openings and finish points without sacrificing control." },
+    ],
     accuracy: commonBands.accuracy,
-    spin: commonBands.spin,
-    technique: commonBands.technique,
+    spin: [
+      { min: 0, max: 6, name: "Unstable", description: "Spin production is accidental; contact is floaty or unstable." },
+      { min: 7, max: 12, name: "Conditional", description: "Can apply spin inconsistently; depth and shape often break down." },
+      { min: 13, max: 18, name: "Functional", description: "Uses spin to manage pace and depth; volleys stay controlled under moderate pressure." },
+      { min: 19, max: 24, name: "Competitive", description: "Redirects spin intentionally to neutralize or apply pressure; reliable touch in exchanges." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Varies spin with intent to shape angles, depth, and pace; disguises soft vs firm touch." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Elite spin control; uses disguise and redirection to command exchanges under pressure." },
+    ],
+    technique: [
+      { min: 0, max: 6, name: "Unstable", description: "Platform and hand control are inconsistent; volleys lack compactness and are energy-inefficient." },
+      { min: 7, max: 12, name: "Conditional", description: "Can execute simple volleys but timing and economy suffer under pressure or on the move." },
+      { min: 13, max: 18, name: "Functional", description: "Uses a short punch, maintains balance, and recovers with reasonable efficiency." },
+      { min: 19, max: 24, name: "Competitive", description: "Compact backswing, stable platform, and economical footwork produce reliable, low-effort volleys." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Varies contact and minimal backswing to control pace and angles while conserving energy." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Volleys are executed with precise economy of motion, exceptional hand control, and immediate recovery." },
+    ],
   },
   overhead: {
     consistency: [
@@ -131,7 +172,14 @@ const referenceKey: Record<string, Record<string, Band[]>> = {
     power: commonBands.power,
     accuracy: commonBands.accuracy,
     spin: commonBands.spin,
-    technique: commonBands.technique,
+    technique: [
+      { min: 0, max: 6, name: "Unstable", description: "Footwork and setup are inconsistent; the motion is long and energy-intensive." },
+      { min: 7, max: 12, name: "Conditional", description: "Can complete overheads but setup and economy break down under pressure or when rushed." },
+      { min: 13, max: 18, name: "Functional", description: "Sets up reliably with balanced footing and a compact swing that conserves energy." },
+      { min: 19, max: 24, name: "Competitive", description: "Efficient positioning, compact backswing, and forward momentum allow powerful, economical overheads." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Optimizes movement into contact and minimizes wasted motion while delivering authoritative overheads." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Overheads are executed with perfect setup, compact mechanics, and maximal efficiency under pressure." },
+    ],
   },
   movement: {
     technique: [

@@ -26,6 +26,8 @@ export default function AddSessionModal({
   const [error, setError] = useState<string | null>(null);
   const [loadingLatest, setLoadingLatest] = useState(false);
   const [notes, setNotes] = useState<string>(player?.notes ?? '');
+  const [newFirstName, setNewFirstName] = useState<string>(player?.first_name ?? '');
+  const [newLastName, setNewLastName] = useState<string>(player?.last_name ?? '');
   const [hoveredBand, setHoveredBand] = useState<{ skill: string; component: string; value: number | null } | null>(null);
   const [sessionsList, setSessionsList] = useState<any[] | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -300,6 +302,19 @@ export default function AddSessionModal({
         if (found) effectiveSessionId = String(found.id);
       }
 
+      if (!player?.id) {
+        // create the player first
+        const createRes = await fetch('/api/admin/create-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ first_name: newFirstName, last_name: newLastName }),
+        });
+        const createJson = await createRes.json();
+        if (!createRes.ok) throw new Error(createJson?.error || 'Failed to create player');
+        // use returned player id
+        player = { ...(player || {}), id: createJson.player?.id, first_name: createJson.player?.first_name, last_name: createJson.player?.last_name };
+      }
+
       if (effectiveSessionId) {
         // update existing session
         const res = await fetch('/api/admin/update-session', {
@@ -335,17 +350,63 @@ export default function AddSessionModal({
 
   // Render the band key panel content. This ensures hovered content and
   // the default band key share identical formatting and layout.
+  // Band base hues (per-band distinct color): Unstable -> Conditional -> Functional -> Competitive -> Advanced -> Tour
+  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
+  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
+
+  function computeBandColor(bandIdx: number, frac = 0.5) {
+    const hue = BAND_BASE_HUES[bandIdx] ?? 200;
+    const baseL = BAND_BASE_LIGHTNESS[bandIdx] ?? 72;
+    const darken = Math.round(Math.min(22, frac * 22)); // darker as frac -> 1
+    const lightness = Math.max(12, Math.min(92, baseL - darken));
+    const saturation = 72;
+    const background = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    const color = lightness > 56 ? '#111' : '#fff';
+    return { background, color };
+  }
+
+  // Compute a heatmap color for a component value relative to its bands.
+  function getComponentHeatStyle(skill: string, component: string, rawVal: any) {
+    const v = rawVal == null || rawVal === '' ? null : Number(rawVal);
+    if (v == null || Number.isNaN(v)) return undefined;
+    const sk = normalizeKey(String(skill || ''));
+    const compMap: Record<string, string> = { c: 'consistency', p: 'power', a: 'accuracy', s: 'spin', t: 'technique' };
+    const canonical = compMap[String(component)] || String(component);
+    const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+    const bands = skillEntry ? (skillEntry[canonical] || skillEntry[component]) : null;
+    if (!bands || !Array.isArray(bands)) return undefined;
+    let bandIdx = bands.findIndex((b: any) => v >= b.min && v <= b.max);
+    if (bandIdx === -1) bandIdx = v < bands[0].min ? 0 : bands.length - 1;
+    const band = bands[bandIdx];
+    const span = Math.max(1, (band.max - band.min));
+    const frac = Math.max(0, Math.min(1, (v - band.min) / span));
+    // Use band-specific hue and darken as value approaches band max
+    return computeBandColor(bandIdx, frac);
+  }
   const renderBandPanelContent = () => {
     const defaultGrid = (
       <div>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>Band key</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
-          <div style={{ fontSize: 13 }}><strong>Unstable</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(0–6)</span>: Frequent errors; contact/timing vary</div>
-          <div style={{ fontSize: 13 }}><strong>Conditional</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(7–12)</span>: Works in controlled settings; breaks under pressure</div>
-          <div style={{ fontSize: 13 }}><strong>Functional</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(13–18)</span>: Reliable vs peers; may degrade under stress</div>
-          <div style={{ fontSize: 13 }}><strong>Competitive</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(19–24)</span>: Performance holds up in match play</div>
-          <div style={{ fontSize: 13 }}><strong>Advanced / Pro-Track</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(25–30)</span>: Advanced, maintains under fatigue and tactics</div>
-          <div style={{ fontSize: 13 }}><strong>Tour Reference</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>(31+)</span>: Elite, baseline for top-level play</div>
+          {[
+            { name: 'Unstable', range: '0–6', desc: 'Frequent errors; contact/timing vary' },
+            { name: 'Conditional', range: '7–12', desc: 'Works in controlled settings; breaks under pressure' },
+            { name: 'Functional', range: '13–18', desc: 'Reliable vs peers; may degrade under stress' },
+            { name: 'Competitive', range: '19–24', desc: 'Performance holds up in match play' },
+            { name: 'Advanced / Pro-Track', range: '25–30', desc: 'Advanced, maintains under fatigue and tactics' },
+            { name: 'Tour Reference', range: '31+', desc: 'Elite, baseline for top-level play' },
+          ].map((b, i) => {
+            const sw = computeBandColor(i, 0.5);
+            return (
+              <div key={b.name} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0' }}>
+                <span style={{ width: 14, height: 14, display: 'inline-block', borderRadius: 3, background: sw.background, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div><strong style={{ marginRight: 6 }}>{b.name}</strong> <span style={{ fontSize: 12, color: '#6b7280' }}>({b.range})</span></div>
+                  <div style={{ fontSize: 12, color: '#374151', marginTop: 2 }}>{b.desc}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -367,13 +428,21 @@ export default function AddSessionModal({
       <div>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{hoveredBand.skill} — {canonicalComp.charAt(0).toUpperCase() + canonicalComp.slice(1)}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
-          {bands.map((b: any) => {
+          {bands.map((b: any, i: number) => {
             const active = hoveredVal != null && hoveredVal >= b.min && hoveredVal <= b.max;
+            const span = Math.max(1, (b.max - b.min));
+            const frac = hoveredVal != null && hoveredVal >= b.min && hoveredVal <= b.max ? Math.max(0, Math.min(1, (hoveredVal - b.min) / span)) : 0.5;
+            const sw = computeBandColor(i, frac);
             return (
-              <div key={`${b.min}-${b.max}`} style={{ fontSize: 13, padding: '6px 0' }}>
-                <span style={{ fontWeight: active ? 700 : 600 }}>{b.name}</span>
-                <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>({formatRange(b.min, b.max)})</span>
-                <span style={{ marginLeft: 8, color: '#374151' }}>: {b.description}</span>
+              <div key={`${b.min}-${b.max}`} style={{ fontSize: 13, padding: '2px 0', display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 3, background: sw.background, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)', marginTop: 2 }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <div style={{ fontWeight: active ? 700 : 600, fontSize: 13 }}>{b.name}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>({formatRange(b.min, b.max)})</div>
+                  </div>
+                  <div style={{ color: '#374151', fontSize: 13, marginTop: 2 }}>{b.description}</div>
+                </div>
               </div>
             );
           })}
@@ -395,6 +464,15 @@ export default function AddSessionModal({
         <div style={{ marginTop: 12 }}>
           <label style={{ display: "block", fontSize: 12, color: "#6b7280" }}>Session date</label>
           <input type="date" value={date} onChange={(e) => handleDateChange(e.target.value)} style={{ width: 200, padding: 8, marginTop: 6 }} />
+          {!player?.id && (
+            <div style={{ marginTop: 8 }}>
+              <label style={{ display: 'block', fontSize: 12, color: '#6b7280' }}>Player name</label>
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder="First name" style={{ padding: 8, width: 200 }} />
+                <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder="Last name" style={{ padding: 8, width: 200 }} />
+              </div>
+            </div>
+          )}
           {sessionsList && sessionsList.length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {sessionsList.map((s:any) => {
@@ -436,6 +514,11 @@ export default function AddSessionModal({
                   computed = present.length ? present.reduce((acc, v) => acc + v, 0) / present.length : null;
                 }
                 const displayComputed = computed == null ? '' : Math.round(computed * 100) / 100;
+                const heatC = getComponentHeatStyle(r.skill_type, 'c', r.c);
+                const heatP = getComponentHeatStyle(r.skill_type, 'p', r.p);
+                const heatA = getComponentHeatStyle(r.skill_type, 'a', r.a);
+                const heatS = getComponentHeatStyle(r.skill_type, 's', r.s);
+                const heatT = getComponentHeatStyle(r.skill_type, 't', r.t);
                 return (
                   <tr key={r.skill_type}>
                       <td style={{ padding: 6, position: 'relative' }}>
@@ -470,73 +553,93 @@ export default function AddSessionModal({
                         </div>
                       </td>
                     <td style={{ padding: 6 }}>
-                      <div style={{ position: 'relative', width: 80 }}>
-                        <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.c ?? ""} onChange={(e) => updateCell(idx, "c", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatC?.background, color: heatC?.color }}>
+                          <input
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            value={r.c ?? ""}
+                            onChange={(e) => updateCell(idx, "c", e.target.value)}
+                          />
+                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
                           </div>
-                          <BandTooltip value={r.c ?? ''} skill={r.skill_type} component="c" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
-                          </BandTooltip>
                         </div>
+                        <BandTooltip value={r.c ?? ''} skill={r.skill_type} component="c" onHover={handleHover}>
+                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                        </BandTooltip>
                       </div>
                     </td>
                     <td style={{ padding: 6 }}>
-                      <div style={{ position: 'relative', width: 80 }}>
-                        <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.p ?? ""} onChange={(e) => updateCell(idx, "p", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatP?.background, color: heatP?.color }}>
+                          <input
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            value={r.p ?? ""}
+                            onChange={(e) => updateCell(idx, "p", e.target.value)}
+                          />
+                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
                           </div>
-                          <BandTooltip value={r.p ?? ''} skill={r.skill_type} component="p" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
-                          </BandTooltip>
                         </div>
+                        <BandTooltip value={r.p ?? ''} skill={r.skill_type} component="p" onHover={handleHover}>
+                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                        </BandTooltip>
                       </div>
                     </td>
                     <td style={{ padding: 6 }}>
-                      <div style={{ position: 'relative', width: 80 }}>
-                        <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.a ?? ""} onChange={(e) => updateCell(idx, "a", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatA?.background, color: heatA?.color }}>
+                          <input
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            value={r.a ?? ""}
+                            onChange={(e) => updateCell(idx, "a", e.target.value)}
+                          />
+                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
                           </div>
-                          <BandTooltip value={r.a ?? ''} skill={r.skill_type} component="a" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
-                          </BandTooltip>
                         </div>
+                        <BandTooltip value={r.a ?? ''} skill={r.skill_type} component="a" onHover={handleHover}>
+                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                        </BandTooltip>
                       </div>
                     </td>
                     <td style={{ padding: 6 }}>
-                      <div style={{ position: 'relative', width: 80 }}>
-                        <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.s ?? ""} onChange={(e) => updateCell(idx, "s", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatS?.background, color: heatS?.color }}>
+                          <input
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            value={r.s ?? ""}
+                            onChange={(e) => updateCell(idx, "s", e.target.value)}
+                          />
+                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
                           </div>
-                          <BandTooltip value={r.s ?? ''} skill={r.skill_type} component="s" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
-                          </BandTooltip>
                         </div>
+                        <BandTooltip value={r.s ?? ''} skill={r.skill_type} component="s" onHover={handleHover}>
+                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                        </BandTooltip>
                       </div>
                     </td>
                     <td style={{ padding: 6 }}>
-                      <div style={{ position: 'relative', width: 80 }}>
-                        <input style={{ width: '100%', padding: '6px 24px 6px 6px', boxSizing: 'border-box' }} value={r.t ?? ""} onChange={(e) => updateCell(idx, "t", e.target.value)} />
-                        <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', 1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', -1)} style={{ width: 18, height: 12, padding: 0, fontSize: 10, lineHeight: '1', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>▼</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatT?.background, color: heatT?.color }}>
+                          <input
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            value={r.t ?? ""}
+                            onChange={(e) => updateCell(idx, "t", e.target.value)}
+                          />
+                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
+                            <button aria-label={`Increase ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
+                            <button aria-label={`Decrease ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
                           </div>
-                          <BandTooltip value={r.t ?? ''} skill={r.skill_type} component="t" onHover={handleHover}>
-                            <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help', paddingLeft: 6 }}>ⓘ</span>
-                          </BandTooltip>
                         </div>
+                        <BandTooltip value={r.t ?? ''} skill={r.skill_type} component="t" onHover={handleHover}>
+                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                        </BandTooltip>
                       </div>
                     </td>
                     <td style={{ padding: 6 }}>{displayComputed}</td>

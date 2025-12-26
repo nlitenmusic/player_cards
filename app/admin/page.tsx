@@ -68,9 +68,16 @@ export default function AdminDashboard() {
     <div style={{ padding: 20 }}>
       <h2>Admin Dashboard (edit mode)</h2>
       <p style={{ fontSize: 13, color: "#6b7280" }}>Recalibrate baseline stats per-player (test mode writes to `test_session_stats`).</p>
-      <div style={{ marginTop: 12, marginBottom: 12 }}>
-        <button onClick={() => setView('cards')} style={{ marginRight: 8 }}>Cards</button>
-        <button onClick={() => setView('leaderboards')}>Leaderboards</button>
+      <div style={{ marginTop: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div>
+          <button onClick={() => setView('cards')} style={{ marginRight: 8 }}>Cards</button>
+          <button onClick={() => setView('leaderboards')}>Leaderboards</button>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <button onClick={() => setModalPlayer({ id: null, first_name: '', last_name: '' })} style={{ padding: '6px 10px', fontSize: 13 }}>
+            Add New Player
+          </button>
+        </div>
       </div>
       {view === 'leaderboards' ? (
         <Leaderboards />
@@ -89,7 +96,7 @@ export default function AdminDashboard() {
                 />
                 <div style={{ textAlign: "center" }}>
                   <button onClick={() => setModalPlayer(p)} style={{ padding: "6px 10px", fontSize: 13 }}>
-                    + Add Session
+                    View Sessions
                   </button>
                   {/* Recalibrate button removed per request */}
                 </div>

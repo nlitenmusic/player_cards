@@ -15,7 +15,7 @@ export default function ProgressBar({
   const pct = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
   return (
     <div style={{ marginTop: 8 }} aria-label={label ?? 'progress'}>
-      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
 
       <div style={{ height, width: '100%', background: '#e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, transition: 'width 300ms ease' }} />
