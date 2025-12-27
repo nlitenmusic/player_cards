@@ -38,6 +38,8 @@ export default function AddSessionModal({
   const currentContext = useRef<{ skill: string; component: string; value: number | null } | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const [modalWidth, setModalWidth] = useState<number>(840);
+  const inputFontSize = modalWidth <= 480 ? 16 : 11;
+  const isMobile = modalWidth <= 480;
   
 
   // Controlled hover lifecycle: debounced show, delayed hide; supports entering panel
@@ -603,9 +605,12 @@ export default function AddSessionModal({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatC?.background, color: heatC?.color }}>
                           <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
                             value={r.c ?? ""}
                             onChange={(e) => updateCell(idx, "c", e.target.value)}
+                            readOnly={isMobile}
+                            inputMode={isMobile ? 'none' : undefined}
+                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
                           />
                           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
                             <button aria-label={`Increase ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
@@ -621,9 +626,12 @@ export default function AddSessionModal({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatP?.background, color: heatP?.color }}>
                           <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
                             value={r.p ?? ""}
                             onChange={(e) => updateCell(idx, "p", e.target.value)}
+                            readOnly={isMobile}
+                            inputMode={isMobile ? 'none' : undefined}
+                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
                           />
                           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
                             <button aria-label={`Increase ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
@@ -639,9 +647,12 @@ export default function AddSessionModal({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatA?.background, color: heatA?.color }}>
                           <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
                             value={r.a ?? ""}
                             onChange={(e) => updateCell(idx, "a", e.target.value)}
+                            readOnly={isMobile}
+                            inputMode={isMobile ? 'none' : undefined}
+                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
                           />
                           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
                             <button aria-label={`Increase ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
@@ -657,9 +668,12 @@ export default function AddSessionModal({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatS?.background, color: heatS?.color }}>
                           <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
                             value={r.s ?? ""}
                             onChange={(e) => updateCell(idx, "s", e.target.value)}
+                            readOnly={isMobile}
+                            inputMode={isMobile ? 'none' : undefined}
+                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
                           />
                           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
                             <button aria-label={`Increase ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
@@ -675,9 +689,12 @@ export default function AddSessionModal({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatT?.background, color: heatT?.color }}>
                           <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: 11 }}
+                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
                             value={r.t ?? ""}
                             onChange={(e) => updateCell(idx, "t", e.target.value)}
+                            readOnly={isMobile}
+                            inputMode={isMobile ? 'none' : undefined}
+                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
                           />
                           <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
                             <button aria-label={`Increase ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
