@@ -183,12 +183,12 @@ const referenceKey: Record<string, Record<string, Band[]>> = {
   },
   movement: {
     technique: [
-      { min: 0, max: 6, name: "Unstable", description: "Arrives late or off-balance, compromising stroke execution" },
-      { min: 7, max: 12, name: "Conditional", description: "Can reach the ball but recovery and balance are inconsistent" },
-      { min: 13, max: 18, name: "Functional", description: "Arrives on time vs peers with generally adequate balance" },
-      { min: 19, max: 24, name: "Competitive", description: "Consistently well positioned and supports stroke quality" },
-      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Arrives early, balanced, and prepared for adjustments" },
-      { min: 31, max: 100, name: "Tour Reference", description: "Movement is automatic; differentiation comes from anticipation and efficiency" },
+      { min: 0, max: 6, name: "Unstable", description: "Slow or reactive movement; often arrives late or off-balance and cannot cover the court quickly or create proper spacing for shot execution." },
+      { min: 7, max: 12, name: "Conditional", description: "Can reach many balls but movement speed, recovery, and spacing are inconsistent, reducing shot preparation quality." },
+      { min: 13, max: 18, name: "Functional", description: "Covers the court adequately vs peers and typically arrives balanced with sufficient spacing to execute standard shots." },
+      { min: 19, max: 24, name: "Competitive", description: "Moves with reliable speed and balance, consistently arriving in positions that enable high-quality shot execution and effective spacing." },
+      { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Anticipates and covers court proactively, arriving early with superior spacing to set up aggressive and varied shot options." },
+      { min: 31, max: 100, name: "Tour Reference", description: "Movement is automatic: covers court efficiently, anticipates positioning, and consistently creates ideal spacing to maximize shot choice and execution." },
     ],
   },
 };

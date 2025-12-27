@@ -31,6 +31,8 @@ export default function AddSessionModal({
   const [hoveredBand, setHoveredBand] = useState<{ skill: string; component: string; value: number | null } | null>(null);
   const [sessionsList, setSessionsList] = useState<any[] | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [collapsedRows, setCollapsedRows] = useState<Record<number, boolean>>({});
+  const rowRefs = useRef<Array<HTMLTableRowElement | null>>([]);
   const showTimeout = useRef<number | null>(null);
   const hideTimeout = useRef<number | null>(null);
   const currentContext = useRef<{ skill: string; component: string; value: number | null } | null>(null);
@@ -236,6 +238,19 @@ export default function AddSessionModal({
       out[idx] = { ...out[idx], [key]: n };
       return out;
     });
+  }
+
+  function toggleCollapse(idx: number) {
+    setCollapsedRows((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  }
+
+  function handleInputFocus(idx: number) {
+    // expand the row when focusing an input and scroll it into view
+    setCollapsedRows((prev) => ({ ...prev, [idx]: false }));
+    const el = rowRefs.current[idx];
+    if (el && typeof el.scrollIntoView === 'function') {
+      try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+    }
   }
 
   // Minimal quick-fill helper (numeric input only)
@@ -504,6 +519,7 @@ export default function AddSessionModal({
             <tbody>
               {rows.map((r, idx) => {
                 const key = String(r.skill_type ?? '').trim().toLowerCase();
+                const isCollapsed = !!collapsedRows[idx];
                 let computed: number | null = null;
                 if (key === 'movement') {
                   // Movement authoritative rule: computed = t only (t may be null)
@@ -519,11 +535,42 @@ export default function AddSessionModal({
                 const heatA = getComponentHeatStyle(r.skill_type, 'a', r.a);
                 const heatS = getComponentHeatStyle(r.skill_type, 's', r.s);
                 const heatT = getComponentHeatStyle(r.skill_type, 't', r.t);
+                // collapsed row: render a compact single-cell row that frees vertical space
+                if (isCollapsed) {
+                  return (
+                    <tr key={`collapsed-${r.skill_type}`} ref={(el) => { rowRefs.current[idx] = el; }}>
+                      <td colSpan={7} style={{ padding: 4, height: 16, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: 1 }}>
+                          <button aria-label={`Expand ${r.skill_type}`} onClick={() => toggleCollapse(idx)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, padding: 0 }}>▸</button>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleCollapse(idx)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(idx); } }}
+                            style={{ fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                          >
+                            {r.skill_type}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
-                  <tr key={r.skill_type}>
+                  <tr key={r.skill_type} ref={(el) => { rowRefs.current[idx] = el; }}>
                       <td style={{ padding: 6, position: 'relative' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ fontWeight: 600, padding: '4px 8px', borderRadius: 6 }}>{r.skill_type}</div>
+                          <button aria-label={`Collapse ${r.skill_type}`} onClick={() => toggleCollapse(idx)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14 }}>▾</button>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleCollapse(idx)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(idx); } }}
+                            style={{ fontWeight: 600, padding: '4px 8px', borderRadius: 6, cursor: 'pointer', outline: 'none' }}
+                          >
+                            {r.skill_type}
+                          </div>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                             <input aria-label={`Custom quick fill ${r.skill_type}`} type="number" min={0} max={45} value={customQuickFill[idx] ?? ''} onChange={(e) => setCustomQuickFill({ ...customQuickFill, [idx]: e.target.value })} placeholder="0–45" style={{ width: 80, padding: '4px 6px', fontSize: 12 }} onKeyDown={(e) => {
                               if (e.key === 'Enter') {
