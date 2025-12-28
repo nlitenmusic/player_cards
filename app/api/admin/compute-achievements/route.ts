@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +13,8 @@ export async function POST(req: Request) {
     if (!SUPABASE_URL || !SERVICE_ROLE) return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
 
     // Implementation: compute leaderboard-based achievements (rule_type = 'top_by_skill')
-    const supabase = require('@supabase/supabase-js').createClient(SUPABASE_URL, SERVICE_ROLE);
+    // Use the official supabase-js client with the service role key for server-side operations
+    const supabase = createClient(String(SUPABASE_URL), String(SERVICE_ROLE));
 
     // fetch achievements with simple leaderboard rule
     const { data: achievements, error: achErr } = await supabase.from('achievements').select('*').eq('rule_type', 'top_by_skill');
@@ -72,9 +73,9 @@ export async function POST(req: Request) {
           const pid = sessionsMap[st.session_id];
           if (!pid) continue;
           const v = extractValue(st, comp);
-          if (!Number.isFinite(v)) continue;
+          if (v === null || !Number.isFinite(v as number)) continue;
           playerVals[pid] = playerVals[pid] || [];
-          playerVals[pid].push(v);
+          playerVals[pid].push(v as number);
         }
 
         const avgs = Object.entries(playerVals).map(([pid, vals]) => ({ player_id: pid, avg: vals.reduce((a,b)=>a+b,0)/vals.length }));
