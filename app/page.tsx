@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import PlayerCard from "./components/PlayerCard";
 import { getTierColor } from "./lib/tiers";
@@ -97,7 +98,10 @@ export default function Home() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
         <Image className="dark:invert" src="/next.svg" alt="Next.js logo" width={100} height={20} priority />
-        <h1 style={{ fontSize: 24, margin: 12 }}>Player Cards MVP</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1 style={{ fontSize: 24, margin: 0 }}>Player Cards MVP</h1>
+          <Link href="/achievements"><button type="button" style={{ padding: '6px 10px', fontSize: 13, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Achievements</button></Link>
+        </div>
 
         <div style={{ width: "100%", boxSizing: "border-box" }}>
           <div style={{ padding: "20px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, alignItems: "start" }}>
