@@ -2,6 +2,9 @@
   "tables": {
     "players": ["id","first_name","last_name","sessions_count","avg_rating","row_averages","created_at","updated_at"],
     "sessions": ["id","player_id","session_date","notes","created_at"],
-    "session_stats": ["id","session_id","skill_type","c","p","a","s","t","created_at"]
+    "session_stats": ["id","session_id","skill_type","c","p","a","s","t","created_at"],
+    "achievements": ["id","key","name","description","icon_url","rule_type","rule_payload","created_at","updated_at"],
+    "player_achievements": ["id","player_id","achievement_id","awarded_at","source","metadata"],
+    "achievement_award_log": ["id","player_achievement_id","action","actor","details","created_at"]
   }
 }

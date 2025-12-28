@@ -1,7 +1,8 @@
 'use client';
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ProgressBar from "./ProgressBar";
 import { getTierColor, getMacroTier, macroTiers, MICRO } from "../lib/tiers";
+import AchievementBadge from './AchievementBadge';
 
 interface PlayerCardProps {
   player: any;
@@ -121,6 +122,26 @@ export default function PlayerCard({
     }
   }
 
+  // achievements state
+  const [achievements, setAchievements] = useState<any[] | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!player?.id) return;
+      try {
+        const res = await fetch(`/api/achievements/player?player_id=${player.id}`);
+        const json = await res.json();
+        if (!mounted) return;
+        setAchievements(json.achievements || []);
+      } catch (e) {
+        if (!mounted) return;
+        setAchievements([]);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, [player?.id]);
+
   return (
     <div
       style={{
@@ -160,6 +181,11 @@ export default function PlayerCard({
           <span>{player.last_name || ""}</span>
         </div>
 
+        {/* player achievements (fetched client-side) */}
+        <div style={{ marginLeft: 8, display: 'flex', gap: 4, alignItems: 'center' }}>
+          {/** achievements will be populated below via effect */}
+        </div>
+
         {isAdmin && (
           <div style={{ marginLeft: "auto" }} className="admin-controls">
             <button onClick={() => { console.log('onAddStats click', player?.id); onAddStats?.(player); }} style={{ marginRight: 8, fontSize: 12 }}>
@@ -172,7 +198,14 @@ export default function PlayerCard({
         )}
       </div>
 
-      <div style={{ color: "#374151", marginBottom: 8 }}>Sessions: {sessionsCount}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ color: "#374151", marginBottom: 8 }}>Sessions: {sessionsCount}</div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {achievements && achievements.map((a) => (
+            <AchievementBadge key={a.id || a.key} achievement={a} />
+          ))}
+        </div>
+      </div>
 
       <div style={{ fontSize: 20, fontWeight: 600 }}>{Math.round(ratingNum * 100) / 100}</div>
 

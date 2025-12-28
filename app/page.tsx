@@ -99,21 +99,8 @@ export default function Home() {
         <Image className="dark:invert" src="/next.svg" alt="Next.js logo" width={100} height={20} priority />
         <h1 style={{ fontSize: 24, margin: 12 }}>Player Cards MVP</h1>
 
-        <div style={{
-          width: "100%",
-          boxSizing: "border-box",
-        }}>
-          <div style={{
-            width: "100vw",
-            marginLeft: "calc(50% - 50vw)",
-            marginRight: "calc(50% - 50vw)",
-            padding: "20px",
-            boxSizing: "border-box",
-            display: "grid",
-            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-            gap: 24,
-            alignItems: "start"
-          }}>
+        <div style={{ width: "100%", boxSizing: "border-box" }}>
+          <div style={{ padding: "20px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, alignItems: "start" }}>
             {players.map((p: any, i: number) => (
               <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} />
             ))}

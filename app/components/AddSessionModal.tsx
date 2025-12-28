@@ -215,6 +215,17 @@ export default function AddSessionModal({
       setRows(skillLabels.map((label) => ({ skill_type: label, c: null, p: null, a: null, s: null, t: null })));
       setNotes('');
       onCreated?.();
+      // trigger background recompute for this player so achievements stay up-to-date
+      try {
+        if (player?.id) {
+          fetch('/api/admin/compute-achievements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: 'player', player_id: player.id }),
+          }).catch(() => {});
+        }
+      } catch (e) {}
+
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -244,6 +255,17 @@ export default function AddSessionModal({
 
   function toggleCollapse(idx: number) {
     setCollapsedRows((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  }
+
+  function toggleCollapseAll() {
+    const all = rows.length > 0 && rows.every((_, i) => !!collapsedRows[i]);
+    if (all) {
+      setCollapsedRows({});
+    } else {
+      const map: Record<number, boolean> = {};
+      for (let i = 0; i < rows.length; i++) map[i] = true;
+      setCollapsedRows(map);
+    }
   }
 
   function handleInputFocus(idx: number) {
@@ -474,6 +496,7 @@ export default function AddSessionModal({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ margin: 0 }}>Add / Edit Session — {player.first_name} {player.last_name}</h3>
           <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={toggleCollapseAll} disabled={loading} style={{ padding: "6px 10px" }}>{rows.length > 0 && rows.every((_, i) => !!collapsedRows[i]) ? 'Expand all' : 'Collapse all'}</button>
             <button onClick={onClose} disabled={loading} style={{ padding: "6px 10px" }}>Close</button>
           </div>
         </div>

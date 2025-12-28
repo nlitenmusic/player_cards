@@ -71,7 +71,8 @@ export default function AdminDashboard() {
       <div style={{ marginTop: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
         <div>
           <button onClick={() => setView('cards')} style={{ marginRight: 8 }}>Cards</button>
-          <button onClick={() => setView('leaderboards')}>Leaderboards</button>
+          <button onClick={() => setView('leaderboards')} style={{ marginRight: 8 }}>Leaderboards</button>
+          <button onClick={() => (window.location.href = '/admin/achievements')} style={{ marginRight: 8 }}>Achievements</button>
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <button onClick={() => setModalPlayer({ id: null, first_name: '', last_name: '' })} style={{ padding: '6px 10px', fontSize: 13 }}>
