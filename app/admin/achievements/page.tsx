@@ -110,7 +110,7 @@ export default function AdminAchievementsPage() {
       console.log('Deleted');
       if (editingId === id) { setEditingId(null); setForm({ key: '', name: '', description: '', skill: '', component: 'c', top_n: '1', icon_url: '' }); }
       await fetchList();
-    } catch (err:any) { setStatus(String(err?.message || err)); }
+    } catch (err:any) { console.error('deleteAchievement error', err); }
   }
 
   async function runComputeAll() {
@@ -120,7 +120,7 @@ export default function AdminAchievementsPage() {
       const j = await res.json();
       console.log('Compute all response:', j);
       fetchList();
-    } catch (e) { setStatus(String(e)); }
+    } catch (e) { console.error('runComputeAll error', e); }
   }
 
   
@@ -192,7 +192,7 @@ export default function AdminAchievementsPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" style={{ padding: '6px 10px', fontSize: 13, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>{editingId ? 'Save Achievement' : 'Create Achievement'}</button>
               <button type="button" onClick={()=>{ setForm({ key: '', name: '', description: '', skill: '', component: 'c', top_n: '1', icon_url: '' }); }} style={{ padding: '6px 10px', fontSize: 13, background: '#e5e7eb', border: '1px solid #d1d5db', borderRadius: 6, cursor: 'pointer' }}>Clear</button>
-              {editingId && <button type="button" onClick={()=>{ setEditingId(null); setForm({ key: '', name: '', description: '', skill: '', component: 'c', top_n: '1', icon_url: '' }); setStatus(null); }} style={{ padding: '6px 10px', fontSize: 13, background: '#f97316', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel Edit</button>}
+              {editingId && <button type="button" onClick={()=>{ setEditingId(null); setForm({ key: '', name: '', description: '', skill: '', component: 'c', top_n: '1', icon_url: '' }); }} style={{ padding: '6px 10px', fontSize: 13, background: '#f97316', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel Edit</button>}
             </div>
           </form>
         </div>
