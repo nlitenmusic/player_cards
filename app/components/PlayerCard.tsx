@@ -11,6 +11,7 @@ interface PlayerCardProps {
   maxStats?: Record<string, number>;
   onAddStats?: (player:any)=>void;
   onEditPlayer?: (player:any)=>void;
+  showSessions?: boolean;
 }
 
 export default function PlayerCard({
@@ -20,6 +21,7 @@ export default function PlayerCard({
   maxStats,
   onAddStats,
   onEditPlayer,
+  showSessions = true,
 }: PlayerCardProps) {
   const sessionsCount = player.sessions_count ?? (player.sessions || []).length ?? 0;
   const avg = player.avg_rating ?? 0;
@@ -181,10 +183,7 @@ export default function PlayerCard({
           <span>{player.last_name || ""}</span>
         </div>
 
-        {/* player achievements (fetched client-side) */}
-        <div style={{ marginLeft: 8, display: 'flex', gap: 4, alignItems: 'center' }}>
-          {/** achievements will be populated below via effect */}
-        </div>
+        {/* player achievements (fetched client-side) - rendered at bottom of card */}
 
         {isAdmin && (
           <div style={{ marginLeft: "auto" }} className="admin-controls">
@@ -199,12 +198,9 @@ export default function PlayerCard({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ color: "#374151", marginBottom: 8 }}>Sessions: {sessionsCount}</div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {achievements && achievements.map((a) => (
-            <AchievementBadge key={a.id || a.key} achievement={a} />
-          ))}
-        </div>
+        {showSessions && (
+          <div style={{ color: "#374151", marginBottom: 8 }}>Sessions: {sessionsCount}</div>
+        )}
       </div>
 
       <div style={{ fontSize: 20, fontWeight: 600 }}>{Math.round(ratingNum * 100) / 100}</div>
@@ -262,6 +258,27 @@ export default function PlayerCard({
           </ul>
         </div>
       )}
+
+      {/* Badges section: always show header and reserve vertical space even if empty */}
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontSize: 12, color: '#374151', fontWeight: 700, marginBottom: 6 }}>Badges</div>
+        <div style={{ minHeight: 48, maxHeight: 96, overflowY: 'auto', display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-start' }}>
+          {achievements && achievements.length > 0 ? (
+            achievements.map((a) => (
+              <div key={a.id || a.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {a.icon_url ? (
+                  <img src={a.icon_url} alt={a.name} style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: 4 }} />
+                ) : (
+                  <div style={{ width: 20, height: 20, background: '#efefef', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 12 }}>🏅</div>
+                )}
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{a.name}</div>
+              </div>
+            ))
+          ) : (
+            <div style={{ color: '#9ca3af', fontSize: 13 }}>No badges yet</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

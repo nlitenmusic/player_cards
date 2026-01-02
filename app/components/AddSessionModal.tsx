@@ -513,6 +513,10 @@ export default function AddSessionModal({
               </div>
             </div>
           )}
+          <div style={{ marginTop: 8 }}>
+            <label style={{ display: 'block', fontSize: 12, color: '#6b7280' }}>Notes</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this session (coach comments, injuries, drills)" style={{ width: '100%', minHeight: 80, padding: 8, marginTop: 6 }} />
+          </div>
           {sessionsList && sessionsList.length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {sessionsList.map((s:any) => {

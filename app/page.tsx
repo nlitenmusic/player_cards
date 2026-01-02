@@ -106,7 +106,7 @@ export default function Home() {
         <div style={{ width: "100%", boxSizing: "border-box" }}>
           <div style={{ padding: "20px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, alignItems: "start" }}>
             {players.map((p: any, i: number) => (
-              <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} />
+              <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} />
             ))}
           </div>
         </div>
