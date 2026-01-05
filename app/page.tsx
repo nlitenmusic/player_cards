@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PlayerCard from "./components/PlayerCard";
+import PlayerSearch from "./components/PlayerSearch";
 import { getTierColor } from "./lib/tiers";
 
 function RatingProgressBar({
@@ -53,6 +54,7 @@ function RatingProgressBar({
 
 export default function Home() {
   const [players, setPlayers] = useState<any[] | null>(null);
+  const [filtered, setFiltered] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,8 +106,9 @@ export default function Home() {
         </div>
 
         <div style={{ width: "100%", boxSizing: "border-box" }}>
+          <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
           <div style={{ padding: "20px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, alignItems: "start" }}>
-            {players.map((p: any, i: number) => (
+            {(filtered ?? players).map((p: any, i: number) => (
               <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} />
             ))}
           </div>

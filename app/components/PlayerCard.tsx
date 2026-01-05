@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import ProgressBar from "./ProgressBar";
 import { getTierColor, getMacroTier, macroTiers, MICRO } from "../lib/tiers";
-import AchievementBadge from './AchievementBadge';
+// AchievementBadge removed; badges hidden in admin card
 
 interface PlayerCardProps {
   player: any;
@@ -124,161 +124,126 @@ export default function PlayerCard({
     }
   }
 
-  // achievements state
-  const [achievements, setAchievements] = useState<any[] | null>(null);
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      if (!player?.id) return;
-      try {
-        const res = await fetch(`/api/achievements/player?player_id=${player.id}`);
-        const json = await res.json();
-        if (!mounted) return;
-        setAchievements(json.achievements || []);
-      } catch (e) {
-        if (!mounted) return;
-        setAchievements([]);
-      }
-    }
-    load();
-    return () => { mounted = false; };
-  }, [player?.id]);
+  // badges/achievements intentionally disabled for Figma admin view
 
   return (
     <div
       style={{
-        position: "relative",
-        border: `1px solid ${rankColor}33`,
+        position: 'relative',
+        width: 192,
+        height: 236,
+        background: '#F4F4F4',
+        color: '#111',
+        boxSizing: 'border-box',
         borderRadius: 8,
-        padding: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-        background: cardBg,
-        color: "#111",
-        minWidth: 220,
-        maxWidth: 320,
-        boxSizing: "border-box",
+        overflow: 'hidden',
       }}
     >
-      {/* tier badge top-right */}
-      <div style={{ position: "absolute", top: 12, right: 12 }}>
-        <div
-          style={{
-            background: rankColor,
-            color: rankColor === "#FFD700" ? "#111" : "#fff",
-            fontSize: 13,
-            fontWeight: 700,
-            padding: "4px 8px",
-            borderRadius: 999,
-            display: "inline-flex",
-            alignItems: "center",
-          }}
-        >
-          {tierName}
-        </div>
-      </div>
+      {/* Figma: MY CARD header (name, tier badge, rating, progress) */}
+      <div className="card-header">
+        {/* (removed duplicate tier badge and name; using Figma header) */}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.05, fontWeight: 700, fontSize: 16 }}>
-          <span>{player.first_name || ""}</span>
-          <span>{player.last_name || ""}</span>
-        </div>
-
-        {/* player achievements (fetched client-side) - rendered at bottom of card */}
-
-        {isAdmin && (
-          <div style={{ marginLeft: "auto" }} className="admin-controls">
-            <button onClick={() => { console.log('onAddStats click', player?.id); onAddStats?.(player); }} style={{ marginRight: 8, fontSize: 12 }}>
-              + Stats
-            </button>
-            <button onClick={() => onEditPlayer?.(player)} style={{ fontSize: 12 }}>
-              Edit
-            </button>
+        {/* header */}
+        <div style={{ position: 'absolute', left: 0, top: 0, width: 192, height: 58.87, display: 'flex', alignItems: 'center', padding: 8, gap: 8 }}>
+          <div style={{ width: 50, height: 49.87, borderRadius: 25, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+            <div style={{ width: 43.87, height: 43.87, borderRadius: 22, background: '#8E8E8E', position: 'relative' }} />
+            <div style={{ position: 'absolute', left: 16.21, top: 15.8, width: 16.98, height: 16.98 }}>
+              {/* person icon placeholder */}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z" fill="#fff"/></svg>
+            </div>
           </div>
-        )}
-      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {showSessions && (
-          <div style={{ color: "#374151", marginBottom: 8 }}>Sessions: {sessionsCount}</div>
-        )}
-      </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: '0px 4px', gap: 2, width: 134, height: 41 }}>
+            <div style={{ fontSize: 10, lineHeight: '12px', color: '#000', fontWeight: 700 }}>{player.first_name || ''} {player.last_name || ''}</div>
+            <div style={{ fontSize: 8, lineHeight: '10px', color: '#606060' }}>{tierName}</div>
 
-      <div style={{ fontSize: 20, fontWeight: 600 }}>{Math.round(ratingNum * 100) / 100}</div>
+            <div style={{ position: 'relative', width: 96, height: 5, borderRadius: 3, marginTop: 6 }}>
+              <div style={{ position: 'absolute', width: '100%', height: 5, background: '#BDBAB8', borderRadius: 3 }} />
+              <div style={{ position: 'absolute', width: `${Math.round(levelProgressPct)}%`, height: 5, background: rankColor, borderRadius: 3 }} />
+            </div>
+          </div>
 
-      <div style={{ marginTop: 8 }}>
-        <ProgressBar value={levelProgressPct} color={rankColor} label={`Progress to ${nextMacro.name} at level ${nextTierLevel}`} />
-      </div>
-
-      {skillScores.some((s) => s !== 0) && (
-        <div style={{ marginTop: 10 }}>
-          <strong style={{ fontSize: 12, color: "#374151" }}>Skill Scores:</strong>
-          <ul style={{ margin: "6px 0 0 0", padding: 0, fontSize: 12 }}>
-            {skillScores.map((s, i) => {
-                const skillName = skillLabels[i] ?? `Row ${i + 1}`;
-                const top = isTopStat(skillName, s);
-                return (
-                  <li key={i} style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 0 }}>
-                        <div style={{ width: 22, display: 'flex', justifyContent: 'center' }}>
-                          {(() => {
-                            const dir = directionMap[skillName.toLowerCase()];
-                            if (dir === 1) {
-                              return (
-                                <span title={`${skillName} ↑`} style={{ display: 'inline-flex', alignItems: 'center', color: '#16a34a' }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                                    <path d="M12 4l6 8h-4v8h-4v-8H6l6-8z" fill="#16a34a" />
-                                  </svg>
-                                </span>
-                              );
-                            }
-                            if (dir === -1) {
-                              return (
-                                <span title={`${skillName} ↓`} style={{ display: 'inline-flex', alignItems: 'center', color: '#dc2626' }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                                    <path d="M12 20l-6-8h4V4h4v8h4l-6 8z" fill="#dc2626" />
-                                  </svg>
-                                </span>
-                              );
-                            }
-                            return <span style={{ width: 14, height: 14, display: 'inline-block' }} />;
-                          })()}
-                        </div>
-
-                        <span style={{ flex: 1, paddingLeft: 4 }}>{skillName}: {Math.round(s * 100) / 100}</span>
-
-                        {top && (
-                          <span title={`Top ${skillName}`} style={{ display: "inline-flex", alignItems: "center" }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                              <path d="M12 2l2.6 5.26L20 9l-4 3.9L17.2 20 12 16.9 6.8 20 8 12.9 4 9l5.4-1.74L12 2z" fill="#FFD700" />
-                            </svg>
-                          </span>
-                        )}
-                  </li>
-                );
-            })}
-          </ul>
+          <div style={{ marginLeft: 'auto', position: 'absolute', right: 6, top: 8, width: 27, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 14, lineHeight: '17px', textAlign: 'center', color: '#000' }}>{Math.round(ratingNum * 100) / 100}</div>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Badges section: always show header and reserve vertical space even if empty */}
-      <div style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 12, color: '#374151', fontWeight: 700, marginBottom: 6 }}>Badges</div>
-        <div style={{ minHeight: 48, maxHeight: 96, overflowY: 'auto', display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-start' }}>
-          {achievements && achievements.length > 0 ? (
-            achievements.map((a) => (
-              <div key={a.id || a.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {a.icon_url ? (
-                  <img src={a.icon_url} alt={a.name} style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: 4 }} />
-                ) : (
-                  <div style={{ width: 20, height: 20, background: '#efefef', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 12 }}>🏅</div>
-                )}
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{a.name}</div>
+      {/* Figma: Skill score circles cluster (absolute positioned bubbles) */}
+      <div className="skill-cluster">
+        <div style={{ position: 'absolute', left: 17, top: 65, width: 160, height: 132 }}>
+          {skillLabels.map((label, i) => {
+            const scoreRaw = skillScores[i] ?? 0;
+            const score = Math.round(scoreRaw * 100) / 100;
+            const positions: Record<string, any> = {
+              Backhand: { left: 34, top: 0, bg: '#DED595' },
+              Return: { left: 94, top: 0, bg: '#EEE49F' },
+              Forehand: { left: 0, top: 46, bg: '#DED595' },
+              Movement: { left: 60, top: 46, bg: '#B9EEC4' },
+              Volley: { left: 120, top: 46, bg: '#FFF4AD' },
+              Serve: { left: 34, top: 92, bg: '#F2E8A2' },
+              Overhead: { left: 94, top: 92, bg: '#E5B791' },
+            };
+            const pos = positions[label] ?? { left: 0, top: 0, bg: '#efefef' };
+            return (
+              <div
+                key={label}
+                style={{
+                  position: 'absolute',
+                  left: pos.left,
+                  top: pos.top,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  background: pos.bg,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 6,
+                  gap: 1,
+                }}
+              >
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 5, lineHeight: '6px', color: '#000', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, lineHeight: '19px', color: '#000' }}>{score}</div>
               </div>
-            ))
-          ) : (
-            <div style={{ color: '#9ca3af', fontSize: 13 }}>No badges yet</div>
-          )}
+            );
+          })}
         </div>
       </div>
+
+      {/* sessions and edit icon (bottom row) */}
+      <div
+        onClick={() => {
+          if (typeof onEditPlayer === 'function') {
+            onEditPlayer(player);
+            return;
+          }
+          if (player?.id) {
+            window.location.href = `/players/${player.id}/edit`;
+          }
+        }}
+        style={{ position: 'absolute', left: 9, top: 218, fontSize: 8.08683, lineHeight: '10px', color: '#000', cursor: 'pointer', textDecoration: 'underline' }}
+      >
+        SESSIONS: {sessionsCount}
+      </div>
+      <div
+        onClick={() => {
+          if (typeof onAddStats === 'function') {
+            onAddStats(player);
+            return;
+          }
+          if (player?.id) {
+            window.location.href = `/players/${player.id}/sessions/new`;
+          }
+        }}
+        style={{ position: 'absolute', left: 166, top: 210, width: 20, height: 20, border: '2px solid #797979', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        title="Add session"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" fill="#000"/></svg>
+      </div>
+
+      {/* Badges removed from UI per request */}
     </div>
   );
 }

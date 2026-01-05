@@ -1,11 +1,13 @@
 'use client';
 import React, { useEffect, useState } from "react";
 import PlayerCard from "../components/PlayerCard";
+import PlayerSearch from "../components/PlayerSearch";
 import AddSessionModal from "../components/AddSessionModal";
 import Leaderboards from "../components/Leaderboards/Leaderboards";
 
 export default function AdminDashboard() {
   const [players, setPlayers] = useState<any[] | null>(null);
+  const [filtered, setFiltered] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modalPlayer, setModalPlayer] = useState<any | null>(null);
   const [view, setView] = useState<'cards' | 'leaderboards'>('cards');
@@ -72,6 +74,7 @@ export default function AdminDashboard() {
         <div>
           <button onClick={() => setView('cards')} style={{ marginRight: 8 }}>Cards</button>
           <button onClick={() => setView('leaderboards')} style={{ marginRight: 8 }}>Leaderboards</button>
+          <button onClick={() => (window.location.href = '/admin/sessions')} style={{ marginRight: 8 }}>Sessions</button>
           <button onClick={() => (window.location.href = '/admin/achievements')} style={{ marginRight: 8 }}>Achievements</button>
         </div>
         <div style={{ marginLeft: 'auto' }}>
@@ -85,8 +88,9 @@ export default function AdminDashboard() {
       ) : (
         <>
           <p style={{ fontSize: 13, color: "#6b7280" }}>Edit controls are enabled on each card.</p>
+          <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 12 }}>
-            {players.map((p:any) => (
+            {(filtered ?? players).map((p:any) => (
               <div key={p.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <PlayerCard
                   player={p}
@@ -95,12 +99,7 @@ export default function AdminDashboard() {
                   onAddStats={handleAddStats}
                   onEditPlayer={handleEditPlayer}
                 />
-                <div style={{ textAlign: "center" }}>
-                  <button onClick={() => setModalPlayer(p)} style={{ padding: "6px 10px", fontSize: 13 }}>
-                    View Sessions
-                  </button>
-                  {/* Recalibrate button removed per request */}
-                </div>
+                {/* View Sessions button removed per request */}
               </div>
             ))}
           </div>

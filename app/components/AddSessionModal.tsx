@@ -1,9 +1,10 @@
 'use client';
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import BandTooltip from "./Leaderboards/BandTooltip";
 import referenceKey, { normalizeKey, getBand } from "../lib/referenceKey";
 
+type ComponentKey = 'c' | 'p' | 'a' | 's' | 't';
 type ComponentRow = { skill_type: string; c?: number | null; p?: number | null; a?: number | null; s?: number | null; t?: number | null };
 
 export default function AddSessionModal({
@@ -16,7 +17,10 @@ export default function AddSessionModal({
   onCreated?: () => void;
 }) {
   const skillLabels = ["Serve", "Return", "Forehand", "Backhand", "Volley", "Overhead", "Movement"];
-  const emptyRow = (): ComponentRow => ({ skill_type: "", c: null, p: null, a: null, s: null, t: null });
+  const componentKeys: ComponentKey[] = ['c', 'p', 'a', 's', 't'];
+  const componentLabels: Record<ComponentKey, string> = {
+    c: 'Consistency', p: 'Power', a: 'Accuracy', s: 'Spin', t: 'Technique'
+  };
 
   const [rows, setRows] = useState<ComponentRow[]>(() =>
     skillLabels.map((label) => ({ skill_type: label, c: null, p: null, a: null, s: null, t: null }))
@@ -31,8 +35,9 @@ export default function AddSessionModal({
   const [hoveredBand, setHoveredBand] = useState<{ skill: string; component: string; value: number | null } | null>(null);
   const [sessionsList, setSessionsList] = useState<any[] | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [collapsedRows, setCollapsedRows] = useState<Record<number, boolean>>({});
-  const rowRefs = useRef<Array<HTMLTableRowElement | null>>([]);
+  // Replaced collapsedRows and rowRefs with simpler state for quick-fill per skill
+  const [customQuickFill, setCustomQuickFill] = useState<Record<string, string>>({}); // Keyed by skillLabel
+
   const showTimeout = useRef<number | null>(null);
   const hideTimeout = useRef<number | null>(null);
   const currentContext = useRef<{ skill: string; component: string; value: number | null } | null>(null);
@@ -40,7 +45,13 @@ export default function AddSessionModal({
   const [modalWidth, setModalWidth] = useState<number>(840);
   const inputFontSize = modalWidth <= 480 ? 16 : 11;
   const isMobile = modalWidth <= 480;
-  
+
+  // Memoize skillMap for efficient lookups in rendering
+  const skillMap = useMemo(() => {
+    const map = new Map<string, ComponentRow>();
+    rows.forEach(r => map.set(r.skill_type, r));
+    return map;
+  }, [rows]);
 
   // Controlled hover lifecycle: debounced show, delayed hide; supports entering panel
   function clearShowTimer() {
@@ -244,69 +255,58 @@ export default function AddSessionModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player?.id]);
 
-  function updateCell(idx: number, key: keyof ComponentRow, v: string) {
+  function updateCell(skillLabel: string, componentKey: ComponentKey, v: string) {
     setRows((prev) => {
       const out = [...prev];
+      const skillIndex = out.findIndex(r => r.skill_type === skillLabel);
+      if (skillIndex === -1) return prev; // Should not happen
+
       const n = v.trim() === "" ? null : Number(v);
-      out[idx] = { ...out[idx], [key]: n };
+      out[skillIndex] = { ...out[skillIndex], [componentKey]: n };
       return out;
     });
   }
 
-  function toggleCollapse(idx: number) {
-    setCollapsedRows((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  // Quick-fill helper for a specific skill (column)
+  function computeAndApplyQuickFillForSkill(skillLabel: string, target: number) {
+    setRows((prev) => {
+        const out = [...prev];
+        const t = Math.round(target);
+        const skillIndex = out.findIndex(r => r.skill_type === skillLabel);
+        if (skillIndex === -1) return prev;
+
+        const row = out[skillIndex];
+        const key = String(row.skill_type ?? '').trim().toLowerCase();
+        
+        const updatedRow = { ...row };
+        if (key === 'movement') {
+          updatedRow.t = t;
+        } else {
+          for (const k of componentKeys) {
+            updatedRow[k] = t;
+          }
+        }
+        out[skillIndex] = updatedRow;
+        return out;
+    });
   }
 
-  function toggleCollapseAll() {
-    const all = rows.length > 0 && rows.every((_, i) => !!collapsedRows[i]);
-    if (all) {
-      setCollapsedRows({});
-    } else {
-      const map: Record<number, boolean> = {};
-      for (let i = 0; i < rows.length; i++) map[i] = true;
-      setCollapsedRows(map);
-    }
-  }
-
-  function handleInputFocus(idx: number) {
-    // expand the row when focusing an input and scroll it into view
-    setCollapsedRows((prev) => ({ ...prev, [idx]: false }));
-    const el = rowRefs.current[idx];
-    if (el && typeof el.scrollIntoView === 'function') {
-      try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
-    }
-  }
-
-  // Minimal quick-fill helper (numeric input only)
-
-  function computeAndApplyQuickFill(idx: number, target: number) {
-    const row = rows[idx];
-    if (!row) return;
-    const key = String(row.skill_type ?? '').trim().toLowerCase();
-    const t = Math.round(target);
-    if (key === 'movement') {
-      updateCell(idx, 't', String(t));
-      return;
-    }
-    const comps: (keyof ComponentRow)[] = ['c','p','a','s','t'];
-    for (const k of comps) updateCell(idx, k, String(t));
-  }
-
-  // Increment/decrement a specific component cell by delta (±1).
-  function changeComponentBy(idx: number, key: keyof ComponentRow, delta: number) {
+  // Increment/decrement a specific component cell by delta (±1) for a specific skill.
+  function changeComponentBy(skillLabel: string, componentKey: ComponentKey, delta: number) {
     setRows((prev) => {
       const out = [...prev];
-      const cur = out[idx]?.[key];
+      const skillIndex = out.findIndex(r => r.skill_type === skillLabel);
+      if (skillIndex === -1) return prev;
+
+      const row = out[skillIndex];
+      const cur = row[componentKey];
       const base = cur == null || Number.isNaN(Number(cur)) ? 0 : Number(cur);
       let next = Math.round(base) + delta;
       next = Math.max(0, Math.min(45, next));
-      out[idx] = { ...out[idx], [key]: next };
+      out[skillIndex] = { ...row, [componentKey]: next };
       return out;
     });
   }
-
-  // per-row custom quick-fill numeric input state
-  const [customQuickFill, setCustomQuickFill] = useState<Record<number, string>>({});
 
   const submit = async () => {
     setError(null);
@@ -317,11 +317,10 @@ export default function AddSessionModal({
         setError("Skill labels missing");
         return;
       }
-      const keys: (keyof ComponentRow)[] = ["c","p","a","s","t"];
-      for (const k of keys) {
+      for (const k of componentKeys) {
         const v = rows[i][k];
         if (v !== null && v !== undefined && Number.isFinite(Number(v)) === false) {
-          setError("All component values must be numeric or blank");
+          setError(`All component values must be numeric or blank. Check ${rows[i].skill_type} ${k.toUpperCase()}`);
           return;
         }
       }
@@ -496,7 +495,6 @@ export default function AddSessionModal({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ margin: 0 }}>Add / Edit Session — {player.first_name} {player.last_name}</h3>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={toggleCollapseAll} disabled={loading} style={{ padding: "6px 10px" }}>{rows.length > 0 && rows.every((_, i) => !!collapsedRows[i]) ? 'Expand all' : 'Collapse all'}</button>
             <button onClick={onClose} disabled={loading} style={{ padding: "6px 10px" }}>Close</button>
           </div>
         </div>
@@ -536,212 +534,119 @@ export default function AddSessionModal({
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: "left", padding: 6 }}>Skill</th>
-                <th style={{ padding: 6 }}>C</th>
-                <th style={{ padding: 6 }}>P</th>
-                <th style={{ padding: 6 }}>A</th>
-                <th style={{ padding: 6 }}>S</th>
-                <th style={{ padding: 6 }}>T</th>
-                <th style={{ padding: 6 }}>Computed</th>
+                <th style={{ textAlign: "left", padding: 6, minWidth: '80px' }}>Component</th>
+                {skillLabels.map((skillLabel) => (
+                    <th key={skillLabel} style={{ padding: 6, minWidth: '100px', textAlign: 'center' }}>
+                        <div style={{ fontWeight: 600 }}>{skillLabel}</div>
+                        {/* Quick-fill inputs for each skill column */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 4 }}>
+                            <input
+                                aria-label={`Custom quick fill ${skillLabel}`}
+                                type="number"
+                                min={0}
+                                max={45}
+                                value={customQuickFill[skillLabel] ?? ''}
+                                onChange={(e) => setCustomQuickFill({ ...customQuickFill, [skillLabel]: e.target.value })}
+                                placeholder="0–45"
+                                style={{ width: '100%', padding: '4px 6px', fontSize: 12, textAlign: 'center' }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const v = Number((e.target as HTMLInputElement).value);
+                                        if (!Number.isFinite(v)) return;
+                                        const clamped = Math.max(0, Math.min(45, Math.round(v)));
+                                        computeAndApplyQuickFillForSkill(skillLabel, clamped);
+                                        setCustomQuickFill({ ...customQuickFill, [skillLabel]: '' });
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                aria-label={`Apply quick-fill for ${skillLabel}`}
+                                onClick={() => {
+                                    const raw = customQuickFill[skillLabel];
+                                    const v = Number(raw);
+                                    if (!Number.isFinite(v)) return;
+                                    const clamped = Math.max(0, Math.min(45, Math.round(v)));
+                                    computeAndApplyQuickFillForSkill(skillLabel, clamped);
+                                    setCustomQuickFill({ ...customQuickFill, [skillLabel]: '' });
+                                }}
+                                style={{ padding: '3px 8px', fontSize: 10, background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4, width: '100%' }}
+                            >
+                                Apply
+                            </button>
+                        </div>
+                    </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, idx) => {
-                const key = String(r.skill_type ?? '').trim().toLowerCase();
-                const isCollapsed = !!collapsedRows[idx];
-                let computed: number | null = null;
-                if (key === 'movement') {
-                  // Movement authoritative rule: computed = t only (t may be null)
-                  computed = r.t != null ? Number(r.t) : null;
-                } else {
-                  // average only non-null components (do not treat null as 0)
-                  const present = [r.c, r.p, r.a, r.s, r.t].filter((v) => v != null).map((v) => Number(v));
-                  computed = present.length ? present.reduce((acc, v) => acc + v, 0) / present.length : null;
-                }
-                const displayComputed = computed == null ? '' : Math.round(computed * 100) / 100;
-                const heatC = getComponentHeatStyle(r.skill_type, 'c', r.c);
-                const heatP = getComponentHeatStyle(r.skill_type, 'p', r.p);
-                const heatA = getComponentHeatStyle(r.skill_type, 'a', r.a);
-                const heatS = getComponentHeatStyle(r.skill_type, 's', r.s);
-                const heatT = getComponentHeatStyle(r.skill_type, 't', r.t);
-                // collapsed row: render a compact single-cell row that frees vertical space
-                if (isCollapsed) {
-                  return (
-                    <tr key={`collapsed-${r.skill_type}`} ref={(el) => { rowRefs.current[idx] = el; }}>
-                      <td colSpan={7} style={{ padding: 4, height: 16, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: 1 }}>
-                          <button aria-label={`Expand ${r.skill_type}`} onClick={() => toggleCollapse(idx)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, padding: 0 }}>▸</button>
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => toggleCollapse(idx)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(idx); } }}
-                            style={{ fontWeight: 600, cursor: 'pointer', outline: 'none' }}
-                          >
-                            {r.skill_type}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-
+              {componentKeys.map((componentKey) => {
                 return (
-                  <tr key={r.skill_type} ref={(el) => { rowRefs.current[idx] = el; }}>
-                      <td style={{ padding: 6, position: 'relative' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button aria-label={`Collapse ${r.skill_type}`} onClick={() => toggleCollapse(idx)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14 }}>▾</button>
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => toggleCollapse(idx)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(idx); } }}
-                            style={{ fontWeight: 600, padding: '4px 8px', borderRadius: 6, cursor: 'pointer', outline: 'none' }}
-                          >
-                            {r.skill_type}
-                          </div>
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <input aria-label={`Custom quick fill ${r.skill_type}`} type="number" min={0} max={45} value={customQuickFill[idx] ?? ''} onChange={(e) => setCustomQuickFill({ ...customQuickFill, [idx]: e.target.value })} placeholder="0–45" style={{ width: 80, padding: '4px 6px', fontSize: 12 }} onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                const v = Number((e.target as HTMLInputElement).value);
-                                if (!Number.isFinite(v)) return;
-                                const clamped = Math.max(0, Math.min(45, Math.round(v)));
-                                computeAndApplyQuickFill(idx, clamped);
-                                setCustomQuickFill({ ...customQuickFill, [idx]: '' });
-                              }
-                            }} />
-                            <button
-                              type="button"
-                              aria-label={`Apply quick-fill for ${r.skill_type}`}
-                              onClick={() => {
-                                const raw = customQuickFill[idx];
-                                const v = Number(raw);
-                                if (!Number.isFinite(v)) return;
-                                const clamped = Math.max(0, Math.min(45, Math.round(v)));
-                                computeAndApplyQuickFill(idx, clamped);
-                                setCustomQuickFill({ ...customQuickFill, [idx]: '' });
-                              }}
-                              style={{ padding: '6px 10px', fontSize: 12, background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                            >
-                              Apply
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    <td style={{ padding: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatC?.background, color: heatC?.color }}>
-                          <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
-                            value={r.c ?? ""}
-                            onChange={(e) => updateCell(idx, "c", e.target.value)}
-                            readOnly={isMobile}
-                            inputMode={isMobile ? 'none' : undefined}
-                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
-                          />
-                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} C`} onClick={() => changeComponentBy(idx, 'c', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
-                          </div>
-                        </div>
-                        <BandTooltip value={r.c ?? ''} skill={r.skill_type} component="c" onHover={handleHover}>
-                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                        </BandTooltip>
-                      </div>
-                    </td>
-                    <td style={{ padding: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatP?.background, color: heatP?.color }}>
-                          <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
-                            value={r.p ?? ""}
-                            onChange={(e) => updateCell(idx, "p", e.target.value)}
-                            readOnly={isMobile}
-                            inputMode={isMobile ? 'none' : undefined}
-                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
-                          />
-                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} P`} onClick={() => changeComponentBy(idx, 'p', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
-                          </div>
-                        </div>
-                        <BandTooltip value={r.p ?? ''} skill={r.skill_type} component="p" onHover={handleHover}>
-                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                        </BandTooltip>
-                      </div>
-                    </td>
-                    <td style={{ padding: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatA?.background, color: heatA?.color }}>
-                          <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
-                            value={r.a ?? ""}
-                            onChange={(e) => updateCell(idx, "a", e.target.value)}
-                            readOnly={isMobile}
-                            inputMode={isMobile ? 'none' : undefined}
-                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
-                          />
-                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} A`} onClick={() => changeComponentBy(idx, 'a', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
-                          </div>
-                        </div>
-                        <BandTooltip value={r.a ?? ''} skill={r.skill_type} component="a" onHover={handleHover}>
-                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                        </BandTooltip>
-                      </div>
-                    </td>
-                    <td style={{ padding: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatS?.background, color: heatS?.color }}>
-                          <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
-                            value={r.s ?? ""}
-                            onChange={(e) => updateCell(idx, "s", e.target.value)}
-                            readOnly={isMobile}
-                            inputMode={isMobile ? 'none' : undefined}
-                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
-                          />
-                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} S`} onClick={() => changeComponentBy(idx, 's', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
-                          </div>
-                        </div>
-                        <BandTooltip value={r.s ?? ''} skill={r.skill_type} component="s" onHover={handleHover}>
-                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                        </BandTooltip>
-                      </div>
-                    </td>
-                    <td style={{ padding: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatT?.background, color: heatT?.color }}>
-                          <input
-                            style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
-                            value={r.t ?? ""}
-                            onChange={(e) => updateCell(idx, "t", e.target.value)}
-                            readOnly={isMobile}
-                            inputMode={isMobile ? 'none' : undefined}
-                            onFocus={(e) => { if (isMobile) { try { (e.currentTarget as HTMLInputElement).blur(); } catch (err) {} } else { handleInputFocus(idx); } }}
-                          />
-                          <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
-                            <button aria-label={`Increase ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
-                            <button aria-label={`Decrease ${r.skill_type} T`} onClick={() => changeComponentBy(idx, 't', -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
-                          </div>
-                        </div>
-                        <BandTooltip value={r.t ?? ''} skill={r.skill_type} component="t" onHover={handleHover}>
-                          <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                        </BandTooltip>
-                      </div>
-                    </td>
-                    <td style={{ padding: 6 }}>{displayComputed}</td>
+                  <tr key={String(componentKey)}>
+                    <td style={{ padding: 6, fontWeight: 600 }}>{componentLabels[componentKey]}</td>
+                    {skillLabels.map((skillLabel) => {
+                      const skillRow = skillMap.get(skillLabel);
+                      const key = normalizeKey(skillLabel);
+                      const isMovement = key === 'movement';
+                      const isMovementCPASE = isMovement && ['c', 'p', 'a', 's'].includes(String(componentKey));
+
+                      const value = skillRow ? skillRow[componentKey] : null;
+                      const heatStyle = getComponentHeatStyle(skillLabel, String(componentKey), value);
+
+                      return (
+                        <td key={`${skillLabel}-${String(componentKey)}`} style={{ padding: 6 }}>
+                          {isMovementCPASE ? (
+                            <span style={{ color: '#9ca3af', fontSize: 13 }}>N/A</span>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ position: 'relative', width: 64, borderRadius: 5, padding: '3px', boxSizing: 'border-box', background: heatStyle?.background, color: heatStyle?.color }}>
+                                <input
+                                  style={{ width: '100%', padding: '5px 20px 5px 5px', boxSizing: 'border-box', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', fontSize: inputFontSize }}
+                                  value={value ?? ""}
+                                  onChange={(e) => updateCell(skillLabel, componentKey, e.target.value)}
+                                  readOnly={isMobile}
+                                  inputMode={isMobile ? 'none' : undefined}
+                                />
+                                <div style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 2, width: 14, alignItems: 'center' }}>
+                                  <button aria-label={`Increase ${skillLabel} ${String(componentKey).toUpperCase()}`} onClick={() => changeComponentBy(skillLabel, componentKey, 1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▲</button>
+                                  <button aria-label={`Decrease ${skillLabel} ${String(componentKey).toUpperCase()}`} onClick={() => changeComponentBy(skillLabel, componentKey, -1)} style={{ width: 14, height: 10, padding: 0, fontSize: 9, lineHeight: '1', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>▼</button>
+                                </div>
+                              </div>
+                              <BandTooltip value={value ?? ''} skill={skillLabel} component={String(componentKey)} onHover={handleHover}>
+                                <span style={{ fontSize: 12, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                              </BandTooltip>
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
+              {/* Computed Row */}
+              <tr>
+                <td style={{ padding: 6, fontWeight: 600 }}>Computed</td>
+                {skillLabels.map((skillLabel) => {
+                  const skillRow = skillMap.get(skillLabel);
+                  let computed: number | null = null;
+                  const key = normalizeKey(skillLabel);
+                  if (key === 'movement') {
+                    computed = skillRow?.t != null ? Number(skillRow.t) : null;
+                  } else {
+                    const present = [skillRow?.c, skillRow?.p, skillRow?.a, skillRow?.s, skillRow?.t].filter((v) => v != null).map((v) => Number(v));
+                    computed = present.length ? present.reduce((acc, v) => acc + v, 0) / present.length : null;
+                  }
+                  const displayComputed = computed == null ? '' : Math.round(computed * 100) / 100;
+                  return (
+                    <td key={`computed-${skillLabel}`} style={{ padding: 6, textAlign: 'center' }}>
+                      {displayComputed}
+                    </td>
+                  );
+                })}
+              </tr>
             </tbody>
           </table>
         </div>
-
-        {/* Static band key removed — the bottom Band key panel updates on hover */}
 
         {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
 

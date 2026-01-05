@@ -30,30 +30,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: sessErr.message || 'failed to update session' }, { status: 500 });
     }
 
-    // replace session_stats: delete old ones, insert new
-    const { error: delErr } = await supabaseServer.from("session_stats").delete().eq("session_id", session_id);
-    if (delErr) {
-      console.error('update-session: failed to delete old session_stats', delErr);
-      return NextResponse.json({ error: delErr.message || 'failed to delete old session_stats' }, { status: 500 });
-    }
+    // If stats_components provided, replace session_stats; otherwise preserve existing stats
+    const hasStats = Array.isArray(stats_components) && stats_components.length > 0;
+    if (hasStats) {
+      const { error: delErr } = await supabaseServer.from("session_stats").delete().eq("session_id", session_id);
+      if (delErr) {
+        console.error('update-session: failed to delete old session_stats', delErr);
+        return NextResponse.json({ error: delErr.message || 'failed to delete old session_stats' }, { status: 500 });
+      }
 
-    const insertRows = (stats_components || []).map((r: any) => ({
-      session_id,
-      skill_type: String(r.skill_type ?? "").trim(),
-      c: r.c ?? null,
-      p: r.p ?? null,
-      a: r.a ?? null,
-      s: r.s ?? null,
-      t: r.t ?? null,
-    }));
+      const insertRows = (stats_components || []).map((r: any) => ({
+        session_id,
+        skill_type: String(r.skill_type ?? "").trim(),
+        c: r.c ?? null,
+        p: r.p ?? null,
+        a: r.a ?? null,
+        s: r.s ?? null,
+        t: r.t ?? null,
+      }));
 
-    const cleanRows = sanitizeRows('session_stats', insertRows);
+      const cleanRows = sanitizeRows('session_stats', insertRows);
 
-    if (cleanRows.length) {
-      const { error: insErr } = await supabaseServer.from("session_stats").insert(cleanRows);
-      if (insErr) {
-        console.error('update-session: failed to insert session_stats', insErr);
-        return NextResponse.json({ error: insErr.message || 'failed to insert session_stats' }, { status: 500 });
+      if (cleanRows.length) {
+        const { error: insErr } = await supabaseServer.from("session_stats").insert(cleanRows);
+        if (insErr) {
+          console.error('update-session: failed to insert session_stats', insErr);
+          return NextResponse.json({ error: insErr.message || 'failed to insert session_stats' }, { status: 500 });
+        }
       }
     }
 
