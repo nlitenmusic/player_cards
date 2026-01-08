@@ -212,36 +212,46 @@ export default function PlayerCard({
         </div>
       </div>
 
-      {/* sessions and edit icon (bottom row) */}
-      <div
-        onClick={() => {
-          if (typeof onEditPlayer === 'function') {
-            onEditPlayer(player);
-            return;
-          }
-          if (player?.id) {
-            window.location.href = `/players/${player.id}/edit`;
-          }
-        }}
-        style={{ position: 'absolute', left: 9, top: 218, fontSize: 8.08683, lineHeight: '10px', color: '#000', cursor: 'pointer', textDecoration: 'underline' }}
-      >
-        SESSIONS: {sessionsCount}
-      </div>
-      <div
-        onClick={() => {
-          if (typeof onAddStats === 'function') {
-            onAddStats(player);
-            return;
-          }
-          if (player?.id) {
-            window.location.href = `/players/${player.id}/sessions/new`;
-          }
-        }}
-        style={{ position: 'absolute', left: 166, top: 210, width: 20, height: 20, border: '2px solid #797979', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        title="Add session"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" fill="#000"/></svg>
-      </div>
+      {/* sessions and add button (admin-only) */}
+      {isAdmin && (
+        <>
+          <div
+            onClick={() => {
+              if (typeof onEditPlayer === 'function') {
+                onEditPlayer(player);
+                return;
+              }
+              if (player?.id) {
+                window.location.href = `/players/${player.id}/edit`;
+              }
+            }}
+            style={{ position: 'absolute', left: 9, top: 218, fontSize: 8.08683, lineHeight: '10px', color: '#000', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            SESSIONS: {sessionsCount}
+          </div>
+
+          <div
+            onClick={() => {
+                  if (typeof onAddStats === 'function') {
+                    onAddStats(player);
+                    return;
+                  }
+                  const pid = player?.id ?? player?.playerId ?? '';
+                  if (typeof window !== 'undefined') {
+                    window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
+                  }
+            }}
+            title="Add session"
+            style={{ position: 'absolute', width: 30, height: 28, left: 160, top: 205, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <div style={{ position: 'absolute', left: '20.83%', right: '20.83%', top: '20.83%', bottom: '20.83%', border: '1.6px solid #1E1E1E', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="#1E1E1E" />
+              </svg>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Badges removed from UI per request */}
     </div>

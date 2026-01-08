@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from "react";
+import { useRouter } from 'next/navigation';
 import PlayerCard from "../components/PlayerCard";
 import PlayerSearch from "../components/PlayerSearch";
 import AddSessionModal from "../components/AddSessionModal";
@@ -40,8 +41,11 @@ export default function AdminDashboard() {
     return () => { mounted = false; };
   }, []);
 
+  const router = useRouter();
+
   const handleAddStats = (player: any) => {
-    setModalPlayer(player);
+    const pid = player?.id ?? player?.playerId ?? '';
+    try { router.push(`/sessions/new?player_id=${encodeURIComponent(String(pid))}`); } catch (e) { window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`; }
   };
 
   const handleEditPlayer = (player: any) => {
