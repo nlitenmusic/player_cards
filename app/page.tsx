@@ -97,23 +97,39 @@ export default function Home() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image className="dark:invert" src="/next.svg" alt="Next.js logo" width={100} height={20} priority />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ fontSize: 24, margin: 0 }}>Player Cards MVP</h1>
-          <Link href="/achievements"><button type="button" style={{ padding: '6px 10px', fontSize: 13, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Achievements</button></Link>
+    <div className="flex min-h-screen bg-zinc-50 font-sans dark:bg-black">
+      <main style={{ paddingTop: 48 }} className="flex min-h-screen w-full flex-col items-start justify-between py-32 px-4 bg-white dark:bg-black">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', width: '100%', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>Player</div>
+
+          <div style={{ width: 40, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#fff', border: '2px solid #111', boxSizing: 'border-box' }}>
+            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="2" width="24" height="14" rx="2" stroke="#111" strokeWidth="1.5" fill="none" />
+              <rect x="5" y="6" width="10" height="6" rx="1" stroke="#111" strokeWidth="1" fill="#f7f7f7" />
+            </svg>
+          </div>
+
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>Cards</div>
         </div>
 
-        <div style={{ width: "100%", boxSizing: "border-box" }}>
+        <div style={{ width: "100%", boxSizing: "border-box", padding: 8, paddingTop: 56, paddingBottom: 100 }}>
           <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
-          <div style={{ padding: "20px", boxSizing: "border-box", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginTop: 12, boxSizing: "border-box", alignItems: "start" }}>
             {(filtered ?? players).map((p: any, i: number) => (
               <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} />
             ))}
           </div>
         </div>
       </main>
+
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999 }}>
+        <Link href="/achievements">
+          <button aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="#111"/></svg>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
+          </button>
+        </Link>
+      </div>
     </div>
   );
 }

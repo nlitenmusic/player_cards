@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import ProgressBar from "./ProgressBar";
 import { getTierColor, getMacroTier, macroTiers, MICRO } from "../lib/tiers";
+import referenceKey, { normalizeKey } from "../lib/referenceKey";
 // AchievementBadge removed; badges hidden in admin card
 
 interface PlayerCardProps {
@@ -70,6 +71,60 @@ export default function PlayerCard({
     return Math.abs((value ?? 0) - top) < 1e-6;
   }
 
+  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
+  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
+
+  function computeBandColor(bandIdx: number, frac = 0.5) {
+    const hue = BAND_BASE_HUES[bandIdx] ?? 200;
+    const baseL = BAND_BASE_LIGHTNESS[bandIdx] ?? 72;
+    const darken = Math.round(Math.min(22, frac * 22));
+    const lightness = Math.max(12, Math.min(92, baseL - darken));
+    const saturation = 72;
+    const background = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    const color = lightness > 56 ? '#111' : '#fff';
+    return { background, color };
+  }
+
+  function getSkillHeatStyle(skill: string, value: number) {
+    try {
+      const sk = normalizeKey(skill);
+      const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+      if (!skillEntry) return null;
+      // prefer these components in order when deriving an overall band
+      const compCandidates = ['consistency', 'technique', 'power', 'accuracy', 'spin'];
+      const v = Number(value);
+      if (Number.isNaN(v)) return null;
+      for (const comp of compCandidates) {
+        const bands = (skillEntry as any)[comp];
+        if (!bands || !Array.isArray(bands) || bands.length === 0) continue;
+        let bandIdx = bands.findIndex((b: any) => v >= b.min && v <= b.max);
+        // if no exact match, choose the nearest band's midpoint (defensive fallback)
+        if (bandIdx === -1) {
+          try {
+            const mids = bands.map((b: any) => ((Number(b.min) + Number(b.max)) / 2));
+            let best = 0;
+            let bestDist = Math.abs(v - mids[0]);
+            for (let i = 1; i < mids.length; i++) {
+              const d = Math.abs(v - mids[i]);
+              if (d < bestDist) { bestDist = d; best = i; }
+            }
+            bandIdx = best;
+          } catch (e) {
+            bandIdx = v < bands[0].min ? 0 : bands.length - 1;
+          }
+        }
+        const band = bands[bandIdx];
+        const span = Math.max(1, (band.max - band.min));
+        const frac = Math.max(0, Math.min(1, (v - band.min) / span));
+        return computeBandColor(bandIdx, frac);
+      }
+      // fallback: if no component bands found, return a neutral swatch
+      return computeBandColor(0, 0.5);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // helpers to compute per-session skill values (mirror server logic)
   function toNumber(v: unknown): number | null {
     if (v === null || v === undefined || v === "") return null;
@@ -125,135 +180,163 @@ export default function PlayerCard({
   }
 
   // badges/achievements intentionally disabled for Figma admin view
+  const [hasBadge, setHasBadge] = useState(false);
+  const [badgeIcon, setBadgeIcon] = useState<string | null>(null);
+
+  useEffect(() => {
+    // fetch player achievements to determine if badge present
+    const pid = player?.id ?? player?.playerId ?? null;
+    if (!pid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/achievements/player?player_id=${encodeURIComponent(String(pid))}`);
+        const j = await res.json();
+        if (cancelled) return;
+        const ach = (j.achievements || []);
+        if (ach && ach.length > 0) {
+          setHasBadge(true);
+          setBadgeIcon(ach[0].icon_url ?? null);
+        } else {
+          setHasBadge(false);
+          setBadgeIcon(null);
+        }
+      } catch (e) {
+        if (!cancelled) { setHasBadge(false); setBadgeIcon(null); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [player?.id]);
 
   return (
     <div
       style={{
         position: 'relative',
-        width: 192,
-        height: 236,
+        width: '100%',
+        maxWidth: 180,
         background: '#F4F4F4',
         color: '#111',
         boxSizing: 'border-box',
         borderRadius: 8,
         overflow: 'hidden',
+        padding: 8,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
       }}
     >
-      {/* Figma: MY CARD header (name, tier badge, rating, progress) */}
-      <div className="card-header">
-        {/* (removed duplicate tier badge and name; using Figma header) */}
+      <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 14, fontWeight: 700, background: 'transparent', padding: 0, borderRadius: 0, boxShadow: 'none', zIndex: 5, color: '#111' }}>
+        {Math.round(ratingNum * 100) / 100}
+      </div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 20, background: '#8E8E8E' }} />
+        </div>
 
-        {/* header */}
-        <div style={{ position: 'absolute', left: 0, top: 0, width: 192, height: 58.87, display: 'flex', alignItems: 'center', padding: 8, gap: 8 }}>
-          <div style={{ width: 50, height: 49.87, borderRadius: 25, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            <div style={{ width: 43.87, height: 43.87, borderRadius: 22, background: '#8E8E8E', position: 'relative' }} />
-            <div style={{ position: 'absolute', left: 16.21, top: 15.8, width: 16.98, height: 16.98 }}>
-              {/* person icon placeholder */}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z" fill="#fff"/></svg>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1, paddingRight: 44 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.first_name || ''}</div>
+          { (player.last_name && String(player.last_name).trim() !== '') ? (
+            <div style={{ fontSize: 10, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.last_name}</div>
+          ) : null }
+          <div style={{ fontSize: 9, color: '#606060' }}>{tierName}</div>
+
+          <div style={{ marginTop: 6, width: '65%', maxWidth: 110, height: 6, borderRadius: 4, background: '#BDBAB8', overflow: 'hidden' }}>
+            <div style={{ width: `${Math.round(levelProgressPct)}%`, height: '100%', background: rankColor }} />
+          </div>
+        </div>
+
+        {/* rating moved to absolute top-right badge so tier/progress can span full width */}
+      </div>
+
+      {/* Skill cluster: 2-3-2 pentagon-like layout (top 2, middle 3, bottom 2) */}
+      <div style={{ width: '100%', maxWidth: 160, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+            {skillLabels.slice(0,2).map((label, idx) => {
+              const i = idx;
+              const scoreRaw = skillScores[i] ?? 0;
+              const score = Math.round(scoreRaw * 100) / 100;
+              const heat = getSkillHeatStyle(label, scoreRaw);
+              const bg = heat?.background ?? '#efefef';
+              const fg = heat?.color ?? '#000';
+              return (
+                <div key={label} style={{ flex: '0 0 34%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, margin: '0 2%' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
+                  </div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: '#000', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
+                </div>
+              );
+            })}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: '0px 4px', gap: 2, width: 134, height: 41 }}>
-            <div style={{ fontSize: 10, lineHeight: '12px', color: '#000', fontWeight: 700 }}>{player.first_name || ''} {player.last_name || ''}</div>
-            <div style={{ fontSize: 8, lineHeight: '10px', color: '#606060' }}>{tierName}</div>
-
-            <div style={{ position: 'relative', width: 96, height: 5, borderRadius: 3, marginTop: 6 }}>
-              <div style={{ position: 'absolute', width: '100%', height: 5, background: '#BDBAB8', borderRadius: 3 }} />
-              <div style={{ position: 'absolute', width: `${Math.round(levelProgressPct)}%`, height: 5, background: rankColor, borderRadius: 3 }} />
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+            {skillLabels.slice(2,5).map((label, idx) => {
+              const i = 2 + idx;
+              const scoreRaw = skillScores[i] ?? 0;
+              const score = Math.round(scoreRaw * 100) / 100;
+              const heat = getSkillHeatStyle(label, scoreRaw);
+              const bg = heat?.background ?? '#efefef';
+              const fg = heat?.color ?? '#000';
+              return (
+                <div key={label} style={{ flex: '0 0 30%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
+                  </div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: '#000', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
+                </div>
+              );
+            })}
           </div>
 
-          <div style={{ marginLeft: 'auto', position: 'absolute', right: 6, top: 8, width: 27, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: 14, lineHeight: '17px', textAlign: 'center', color: '#000' }}>{Math.round(ratingNum * 100) / 100}</div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+            {skillLabels.slice(5,7).map((label, idx) => {
+              const i = 5 + idx;
+              const scoreRaw = skillScores[i] ?? 0;
+              const score = Math.round(scoreRaw * 100) / 100;
+              const heat = getSkillHeatStyle(label, scoreRaw);
+              const bg = heat?.background ?? '#efefef';
+              const fg = heat?.color ?? '#000';
+              return (
+                <div key={label} style={{ flex: '0 0 34%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, margin: '0 2%' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
+                  </div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: '#000', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Figma: Skill score circles cluster (absolute positioned bubbles) */}
-      <div className="skill-cluster">
-        <div style={{ position: 'absolute', left: 17, top: 65, width: 160, height: 132 }}>
-          {skillLabels.map((label, i) => {
-            const scoreRaw = skillScores[i] ?? 0;
-            const score = Math.round(scoreRaw * 100) / 100;
-            const positions: Record<string, any> = {
-              Backhand: { left: 34, top: 0, bg: '#DED595' },
-              Return: { left: 94, top: 0, bg: '#EEE49F' },
-              Forehand: { left: 0, top: 46, bg: '#DED595' },
-              Movement: { left: 60, top: 46, bg: '#B9EEC4' },
-              Volley: { left: 120, top: 46, bg: '#FFF4AD' },
-              Serve: { left: 34, top: 92, bg: '#F2E8A2' },
-              Overhead: { left: 94, top: 92, bg: '#E5B791' },
-            };
-            const pos = positions[label] ?? { left: 0, top: 0, bg: '#efefef' };
-            return (
-              <div
-                key={label}
-                style={{
-                  position: 'absolute',
-                  left: pos.left,
-                  top: pos.top,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  background: pos.bg,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 6,
-                  gap: 1,
-                }}
-              >
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 5, lineHeight: '6px', color: '#000', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, lineHeight: '19px', color: '#000' }}>{score}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Footer: sessions link + add button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        {!isAdmin && (
+          <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontStyle: 'italic', fontSize: 11, color: '#000', textDecoration: 'none' }}>skill breakdown</a>
+        )}
 
-      {/* sessions and add button (admin-only) */}
-      {isAdmin && (
-        <>
-          <div
-            onClick={() => {
-              if (typeof onEditPlayer === 'function') {
-                onEditPlayer(player);
-                return;
-              }
-              if (player?.id) {
-                window.location.href = `/players/${player.id}/edit`;
-              }
-            }}
-            style={{ position: 'absolute', left: 9, top: 218, fontSize: 8.08683, lineHeight: '10px', color: '#000', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            SESSIONS: {sessionsCount}
-          </div>
+        {isAdmin && (
+          <>
+            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontSize: 11, color: '#000', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
 
-          <div
-            onClick={() => {
-                  if (typeof onAddStats === 'function') {
-                    onAddStats(player);
-                    return;
-                  }
-                  const pid = player?.id ?? player?.playerId ?? '';
-                  if (typeof window !== 'undefined') {
-                    window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
-                  }
-            }}
-            title="Add session"
-            style={{ position: 'absolute', width: 30, height: 28, left: 160, top: 205, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <div style={{ position: 'absolute', left: '20.83%', right: '20.83%', top: '20.83%', bottom: '20.83%', border: '1.6px solid #1E1E1E', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+            <div
+              onClick={() => {
+                if (typeof onAddStats === 'function') { onAddStats(player); return; }
+                const pid = player?.id ?? player?.playerId ?? '';
+                if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
+              }}
+              title="Add session"
+              style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="#1E1E1E" />
               </svg>
             </div>
-          </div>
-        </>
-      )}
-
-      {/* Badges removed from UI per request */}
+          </>
+        )}
+      </div>
     </div>
   );
 }

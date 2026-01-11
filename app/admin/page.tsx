@@ -71,29 +71,31 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Admin Dashboard (edit mode)</h2>
-      <p style={{ fontSize: 13, color: "#6b7280" }}>Recalibrate baseline stats per-player (test mode writes to `test_session_stats`).</p>
-      <div style={{ marginTop: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div>
-          <button onClick={() => setView('cards')} style={{ marginRight: 8 }}>Cards</button>
-          <button onClick={() => setView('leaderboards')} style={{ marginRight: 8 }}>Leaderboards</button>
-          <button onClick={() => (window.location.href = '/admin/sessions')} style={{ marginRight: 8 }}>Sessions</button>
-          <button onClick={() => (window.location.href = '/admin/achievements')} style={{ marginRight: 8 }}>Achievements</button>
-        </div>
-        <div style={{ marginLeft: 'auto' }}>
-          <button onClick={() => setModalPlayer({ id: null, first_name: '', last_name: '' })} style={{ padding: '6px 10px', fontSize: 13 }}>
-            Add New Player
-          </button>
+    <div style={{ padding: 8, paddingTop: 56, paddingBottom: 100 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <h2 style={{ letterSpacing: 0.5, margin: 0 }}>PLAYER CARDS</h2>
+        <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ width: 260, maxWidth: '50vw' }}>
+            <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
+          </div>
+
+          <div style={{ width: 260, maxWidth: '50vw', display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => { try { router.push('/admin/players/new'); } catch (e) { window.location.href = '/admin/players/new'; } }} aria-label="Add player" title="Add player" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', color: '#111827' }}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
+      {/* Top controls moved to bottom fixed menu */}
       {view === 'leaderboards' ? (
         <Leaderboards />
       ) : (
         <>
-          <p style={{ fontSize: 13, color: "#6b7280" }}>Edit controls are enabled on each card.</p>
-          <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 12 }}>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginTop: 12 }}>
             {(filtered ?? players).map((p:any) => (
               <div key={p.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <PlayerCard
@@ -120,6 +122,31 @@ export default function AdminDashboard() {
           )}
         </>
       )}
+
+        {/* Fixed bottom menu bar */}
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999 }}>
+          <button onClick={() => setView('cards')} aria-pressed={view === 'cards'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" stroke="#111" strokeWidth="1.2"/><rect x="14" y="3" width="7" height="7" stroke="#111" strokeWidth="1.2"/><rect x="3" y="14" width="7" height="7" stroke="#111" strokeWidth="1.2"/><rect x="14" y="14" width="7" height="7" stroke="#111" strokeWidth="1.2"/></svg>
+            <div style={{ fontSize: 11, color: view === 'cards' ? '#000' : '#6b7280' }}>Cards</div>
+          </button>
+
+          <button onClick={() => setView('leaderboards')} aria-pressed={view === 'leaderboards'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="#111"/></svg>
+            <div style={{ fontSize: 11, color: view === 'leaderboards' ? '#000' : '#6b7280' }}>Leaderboards</div>
+          </button>
+
+          <button onClick={() => { try { router.push('/admin/sessions'); } catch (e) { window.location.href = '/admin/sessions'; } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18v2H3V6zm0 5h12v2H3v-2zm0 5h8v2H3v-2z" fill="#111"/></svg>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Sessions</div>
+          </button>
+
+          <button onClick={() => { try { router.push('/admin/achievements'); } catch (e) { window.location.href = '/admin/achievements'; } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="#111"/></svg>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
+          </button>
+
+          {/* add-player button moved to header */}
+        </div>
     </div>
   );
 }

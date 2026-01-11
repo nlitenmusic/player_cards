@@ -34,7 +34,7 @@ export default function UserDashboard() {
   return (
     <div style={{ padding: 20 }}>
       <h2>User Dashboard (read-only)</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginTop: 12 }}>
         {players.map((p:any) => (
           <PlayerCard key={p.id} player={p} maxStats={maxStats} />
         ))}

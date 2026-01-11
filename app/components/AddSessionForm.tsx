@@ -12,7 +12,7 @@ type AddSessionFormHandle = {
   submit: () => Promise<void>;
 };
 
-export default React.forwardRef(function AddSessionForm({ player, onClose, onCreated, hideDate, hideNotes, showSaveButton = true }: { player: any; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean }, ref: React.Ref<AddSessionFormHandle>) {
+export default React.forwardRef(function AddSessionForm({ player, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, readOnly = false }: { player: any; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; readOnly?: boolean }, ref: React.Ref<AddSessionFormHandle>) {
   const skillLabels = ["Serve", "Return", "Forehand", "Backhand", "Volley", "Overhead", "Movement"];
   const componentKeys: ComponentKey[] = ['c', 'p', 'a', 's', 't'];
   const componentLabels: Record<ComponentKey, string> = {
@@ -22,15 +22,25 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
   const [rows, setRows] = useState<ComponentRow[]>(() =>
     skillLabels.map((label) => ({ skill_type: label, c: null, p: null, a: null, s: null, t: null }))
   );
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  function todayLocal() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  const [date, setDate] = useState<string>(todayLocal());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingLatest, setLoadingLatest] = useState(false);
   const [notes, setNotes] = useState<string>(player?.notes ?? '');
+  const notesRef = useRef<string>(player?.notes ?? '');
   // optional display controls for multi-step flow
   hideDate = hideDate ?? false;
   hideNotes = hideNotes ?? false;
   showSaveButton = showSaveButton ?? true;
+  readOnly = readOnly ?? false;
   const [newFirstName, setNewFirstName] = useState<string>(player?.first_name ?? '');
   const [newLastName, setNewLastName] = useState<string>(player?.last_name ?? '');
   const [hoveredBand, setHoveredBand] = useState<{ skill: string; component: string; value: number | null } | null>(null);
@@ -98,6 +108,8 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
+
+  useEffect(() => { notesRef.current = notes; }, [notes]);
 
   useEffect(() => {
     return () => {};
@@ -336,11 +348,13 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
         player = { ...(player || {}), id: createJson.player?.id, first_name: createJson.player?.first_name, last_name: createJson.player?.last_name };
       }
 
+      const notesToSend = notesRef.current ?? notes;
+
       if (effectiveSessionId) {
         const res = await fetch('/api/admin/update-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: effectiveSessionId, session_date: date, stats_components: rows, notes }),
+          body: JSON.stringify({ session_id: effectiveSessionId, session_date: date, stats_components: rows, notes: notesToSend }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json?.error || 'Failed to update session');
@@ -352,7 +366,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
             player_id: player.id,
             session_date: date,
             stats_components: rows,
-            notes,
+            notes: notesToSend,
           }),
         });
         const json = await res.json();
@@ -373,8 +387,15 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
     setState: (s: { rows?: ComponentRow[]; date?: string; notes?: string; selectedSessionId?: string | null }) => {
       if (s.rows) setRows(s.rows);
       if (s.date) setDate(s.date);
-      if (s.notes !== undefined) setNotes(s.notes);
-      if (s.selectedSessionId !== undefined) setSelectedSessionId(s.selectedSessionId ?? null);
+      if (s.notes !== undefined) { notesRef.current = s.notes; setNotes(s.notes); }
+      if (s.selectedSessionId !== undefined) {
+        const sid = s.selectedSessionId ?? null;
+        setSelectedSessionId(sid);
+        try {
+          if (sid) loadSessionById(sid);
+          else setRows(skillLabels.map((label) => ({ skill_type: label, c: null, p: null, a: null, s: null, t: null })));
+        } catch (e) {}
+      }
     },
     submit: async () => { await submit(); }
   }), [rows, date, notes, selectedSessionId]);
@@ -417,9 +438,9 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
     const figmaLineHeight = '11px';
 
     const defaultGrid = (
-      <div style={{ width: 337 }}>
+      <div style={{ width: '100%', maxWidth: 337 }}>
         <div style={{ fontWeight: 500, marginBottom: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, textAlign: 'center' }}>BAND KEY</div>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 18, width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 12, width: '100%' }}>
           {[
             { name: 'Unstable', range: '0–6', desc: 'Frequent errors; contact/timing vary' },
             { name: 'Conditional', range: '7–12', desc: 'Works in controlled settings; breaks under pressure' },
@@ -431,12 +452,12 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
             // split into two columns of three items each
             return null; // handled below
           })}
-          <div style={{ width: 159.5, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.06em' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.06em' }}>
             <div>Unstable (0–6) Frequent errors; contact/timing vary</div>
             <div>Conditional (7–12) Works in controlled settings; breaks under pressure</div>
             <div>Functional (13–18) Reliable vs peers; may degrade under stress</div>
           </div>
-          <div style={{ width: 159.5, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.04em' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.04em' }}>
             <div>Competitive (19–24) Performance holds up in match play</div>
             <div>Advanced (25–30) Advanced, maintains under fatigue and tactics</div>
             <div>Tour Reference (31+) Elite, baseline for top-level play</div>
@@ -459,10 +480,10 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
     const hoveredVal = hoveredBand.value;
 
     return (
-      <div style={{ width: 337, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight }}>
+      <div style={{ width: '100%', maxWidth: 337, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight }}>
         <div style={{ fontWeight: 500, marginBottom: 6 }}>{hoveredBand.skill} — {canonicalComp.charAt(0).toUpperCase() + canonicalComp.slice(1)}</div>
         <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
-          <div style={{ width: 159.5, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {bands.slice(0, Math.ceil(bands.length / 2)).map((b: any, i: number) => {
               const globalIndex = i;
               const active = hoveredVal != null && hoveredVal >= b.min && hoveredVal <= b.max;
@@ -480,7 +501,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
               );
             })}
           </div>
-          <div style={{ width: 159.5, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {bands.slice(Math.ceil(bands.length / 2)).map((b: any, i: number) => {
               const globalIndex = Math.ceil(bands.length / 2) + i;
               const active = hoveredVal != null && hoveredVal >= b.min && hoveredVal <= b.max;
@@ -509,32 +530,32 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
           {!hideDate && (
             <>
               <label style={{ display: "block", fontSize: 12, color: "#6b7280" }}>Session date</label>
-              <input type="date" value={date} onChange={(e) => handleDateChange(e.target.value)} style={{ width: 200, padding: 8, marginTop: 6 }} />
+                  <input type="date" value={date} onChange={(e) => handleDateChange(e.target.value)} disabled={readOnly} style={{ width: 200, padding: 8, marginTop: 6 }} />
             </>
           )}
           {!player?.id && (
             <div style={{ marginTop: 8 }}>
               <label style={{ display: 'block', fontSize: 12, color: '#6b7280' }}>Player name</label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder="First name" style={{ padding: 8, width: 200 }} />
-                <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder="Last name" style={{ padding: 8, width: 200 }} />
+                <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder="First name" disabled={readOnly} style={{ padding: 8, width: 200 }} />
+                <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder="Last name" disabled={readOnly} style={{ padding: 8, width: 200 }} />
               </div>
             </div>
           )}
           {!hideNotes && (
             <div style={{ marginTop: 8 }}>
               <label style={{ display: 'block', fontSize: 12, color: '#6b7280' }}>Notes</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this session (coach comments, injuries, drills)" style={{ width: '100%', minHeight: 80, padding: 8, marginTop: 6 }} />
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this session (coach comments, injuries, drills)" readOnly={readOnly} style={{ width: '100%', minHeight: 80, padding: 8, marginTop: 6 }} />
             </div>
           )}
           {/* previous session chips removed for inline page layout */}
         </div>
 
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ width: 360, maxWidth: '100%' }}>
+          <div style={{ width: '100%', maxWidth: 360 }}>
             {/* Carousel: show one skill at a time */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <button onClick={() => setCurrentSkillIndex((i) => (i - 1 + skillLabels.length) % skillLabels.length)} style={{ padding: '6px 10px' }}>◀</button>
+              <button onClick={() => setCurrentSkillIndex((i) => (i - 1 + skillLabels.length) % skillLabels.length)} style={{ padding: '6px 10px' }}>‹</button>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontWeight: 700, fontSize: 20 }}>{skillLabels[currentSkillIndex]}</div>
                 <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>Overall: {(() => {
@@ -546,7 +567,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                   return present.length ? Math.round((present.reduce((a,b)=>a+b,0)/present.length) * 100) / 100 : '';
                 })()}</div>
               </div>
-              <button onClick={() => setCurrentSkillIndex((i) => (i + 1) % skillLabels.length)} style={{ padding: '6px 10px' }}>▶</button>
+              <button onClick={() => setCurrentSkillIndex((i) => (i + 1) % skillLabels.length)} style={{ padding: '6px 10px' }}>›</button>
             </div>
 
             <div style={{ marginTop: 12, background: '#F9F9F9', borderRadius: 12, padding: 12 }}>
@@ -561,36 +582,108 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                 const heatStyle = getComponentHeatStyle(skillLabel, String(ck), value);
                 return (
                   <div key={compKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>{componentLabels[ck]}</div>
-                      <div style={{ fontSize: 20, fontWeight: 700 }}>{hide ? 'N/A' : (value ?? '')}</div>
-                    </div>
-                    {!hide && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button onClick={() => changeComponentBy(skillLabel, ck, -1)} style={{ padding: '6px 8px' }}>–</button>
-                        <div style={{ width: 80, padding: 6, borderRadius: 6, background: heatStyle?.background, color: heatStyle?.color }}>
-                          <input value={value ?? ''} onChange={(e) => updateCell(skillLabel, ck, e.target.value)} style={{ width: '100%', border: 'none', background: 'transparent', color: 'inherit', outline: 'none', fontSize: 16 }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      {!hide ? (
+                        readOnly ? (
+                          <div style={{
+                            height: 36,
+                            minWidth: 120,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid #ccc',
+                            borderRadius: 6,
+                            background: heatStyle?.background,
+                            color: heatStyle?.color,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            padding: '0 8px'
+                          }}>{value ?? ''}</div>
+                        ) : (
+                        <div style={{ /* Combined Toggle Stat Button */
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderRadius: 6,
+                          border: '1px solid #ccc',
+                          overflow: 'hidden',
+                          background: heatStyle?.background,
+                          color: heatStyle?.color,
+                          height: 36,
+                          minWidth: 120,
+                          justifyContent: 'space-between'
+                        }}>
+                          <button onClick={() => changeComponentBy(skillLabel, ck, -1)} style={{
+                            padding: '0 8px',
+                            height: '100%',
+                            background: 'transparent',
+                            color: 'inherit',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: 18,
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}>‹</button>
+                          <input
+                            value={value ?? ''}
+                            onChange={(e) => updateCell(skillLabel, ck, e.target.value)}
+                            style={{
+                              flexGrow: 1,
+                              height: '100%',
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'inherit',
+                              outline: 'none',
+                              fontSize: 16,
+                              textAlign: 'center',
+                              padding: '0',
+                              margin: '0 4px'
+                            }}
+                          />
+                          <button onClick={() => changeComponentBy(skillLabel, ck, 1)} style={{
+                            padding: '0 8px',
+                            height: '100%',
+                            background: 'transparent',
+                            color: 'inherit',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: 18,
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}>›</button>
                         </div>
-                        <button onClick={() => changeComponentBy(skillLabel, ck, 1)} style={{ padding: '6px 8px' }}>+</button>
-                        <BandTooltip value={value ?? ''} skill={skillLabel} component={String(ck)} onHover={handleHover}>
-                          <span style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                        </BandTooltip>
-                      </div>
-                    )}
+                        )
+                      ) : (
+                        <div style={{ /* N/A State */
+                          height: 36,
+                          minWidth: 120,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid #ccc',
+                          borderRadius: 6,
+                          background: '#f0f0f0',
+                          color: '#6b7280',
+                          fontSize: 16,
+                          fontWeight: 500
+                        }}>N/A</div>
+                      )}
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{componentLabels[ck]}</div>
+                    </div>
+                    <BandTooltip value={value ?? ''} skill={skillLabel} component={String(ck)} onHover={handleHover}>
+                      <span style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                    </BandTooltip>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div style={{ width: 359, boxSizing: 'border-box' }}>
+          <div style={{ width: '100%', boxSizing: 'border-box', maxWidth: 359 }}>
             <div style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', gap: 32, position: 'relative', background: '#D9D9D9', border: '2.65693px solid rgba(0,0,0,0.23)', borderRadius: 10 }}
               onMouseEnter={() => { clearHideTimer(); }}
               onMouseLeave={() => { scheduleHide(); }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 0, width: 337, height: 165 }}>
-                <div style={{ width: 337, height: 26, fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial', fontStyle: 'normal', fontWeight: 500, fontSize: '9.58154px', lineHeight: '11px', textAlign: 'center', letterSpacing: '0.04em', color: '#000000', marginBottom: 8 }}>BAND KEY</div>
-
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 0, width: 337 }}>
                 {/* dynamic band panel is rendered inside the Figma-styled gray container */}
                 <div style={{ marginTop: 6, width: '100%' }}>
                   {renderBandPanelContent()}
@@ -605,13 +698,13 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
         {/* duplicate band panel removed — the Figma-styled More info box above is the canonical target for hover events */}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-          <button onClick={() => { setRows(skillLabels.map((label) => ({ skill_type: label, c: null, p: null, a: null, s: null, t: null }))); }} style={{ padding: "8px 12px" }} disabled={loading}>Clear</button>
-          {selectedSessionId && (
+
+          {selectedSessionId && !hideDelete && !readOnly && (
             <button onClick={deleteSelectedSession} disabled={loading} style={{ padding: "8px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 4 }}>
               {loading ? "Deleting..." : "Delete session"}
             </button>
           )}
-          {showSaveButton && (
+          {showSaveButton && !readOnly && (
             <button onClick={submit} disabled={loading} style={{ padding: "8px 12px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 4 }}>
               {loading ? "Saving..." : "Save session"}
             </button>

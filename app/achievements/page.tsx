@@ -62,7 +62,6 @@ export default function AchievementsPage() {
     <div style={{ padding: 20, maxWidth: 980, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         <h1 style={{ margin: 0 }}>Achievements</h1>
-        <Link href="/"><button type="button">Back to Home</button></Link>
       </div>
 
       {loading && <div>Loading achievements…</div>}
@@ -72,30 +71,38 @@ export default function AchievementsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '2px solid #e6e6e6' }}>
-              <th style={{ padding: '8px 12px' }}>Icon</th>
-              <th style={{ padding: '8px 12px' }}>Achievement</th>
-              <th style={{ padding: '8px 12px' }}>Description</th>
-              <th style={{ padding: '8px 12px' }}>What it takes</th>
-            </tr>
+                  <th style={{ padding: '8px 12px' }}>Icon</th>
+                  <th style={{ padding: '8px 12px' }}>Achievement</th>
+                  <th style={{ padding: '8px 12px' }}>Description</th>
+                </tr>
           </thead>
           <tbody>
             {items.map(a => (
               <tr key={a.id || a.key} style={{ borderBottom: '1px solid #f1f1f1' }}>
                 <td style={{ padding: '10px 12px', width: 80 }}>
-                  {a.icon_url ? (
-                    <img src={a.icon_url} alt={a.name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6 }} />
-                  ) : (
-                    <div style={{ width: 48, height: 48, background: '#efefef', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>🏅</div>
-                  )}
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: a.icon_url ? 'transparent' : '#efefef', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)', border: '2px solid #000', boxSizing: 'border-box' }}>
+                    {a.icon_url ? (
+                      <img src={a.icon_url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <span style={{ fontSize: 20 }}>🏅</span>
+                    )}
+                  </div>
                 </td>
                 <td style={{ padding: '10px 12px', verticalAlign: 'top', fontWeight: 600 }}>{a.name}</td>
                 <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>{a.description || '—'}</td>
-                <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>{ruleSummary(a)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999 }}>
+        <Link href="/">
+          <button aria-label="Cards" title="Cards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" stroke="#111" strokeWidth="1.2"/><rect x="14" y="3" width="7" height="7" stroke="#111" strokeWidth="1.2"/><rect x="3" y="14" width="7" height="7" stroke="#111" strokeWidth="1.2"/><rect x="14" y="14" width="7" height="7" stroke="#111" strokeWidth="1.2"/></svg>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
+          </button>
+        </Link>
+      </div>
     </div>
   );
 }

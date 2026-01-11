@@ -27,7 +27,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ sessions: data || [] });
+    // Normalize session_date to date-only (YYYY-MM-DD) to avoid timezone conversion on the client
+    const sessions = (data || []).map((r: any) => ({
+      ...r,
+      session_date: r?.session_date ? String(r.session_date).slice(0, 10) : r?.session_date,
+    }));
+
+    return NextResponse.json({ sessions });
   } catch (err) {
     console.error("player-sessions unexpected error", err);
     return NextResponse.json({ error: "unexpected" }, { status: 500 });
