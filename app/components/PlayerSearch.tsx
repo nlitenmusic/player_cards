@@ -34,7 +34,7 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
   }, [q, players, onFiltered]);
 
   return (
-    <div style={{ marginBottom: 12, width: '100%', position: 'relative' }}>
+    <div style={{ marginBottom: 12, width: '100%', position: 'relative', background: 'transparent', paddingTop: 6, paddingBottom: 6 }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#9ca3af' }}>
         <circle cx="11" cy="11" r="6"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -43,7 +43,7 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
         placeholder={placeholder}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        style={{ width: '100%', padding: '8px 10px 8px 36px', borderRadius: 6, border: '1px solid #e5e7eb' }}
+        style={{ width: '100%', padding: '8px 10px 8px 36px', borderRadius: 6, border: '1px solid #e5e7eb', boxSizing: 'border-box', background: '#fff' }}
       />
     </div>
   );

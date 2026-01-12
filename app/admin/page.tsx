@@ -130,15 +130,12 @@ export default function AdminDashboard() {
             <div style={{ fontSize: 11, color: view === 'cards' ? '#000' : '#6b7280' }}>Cards</div>
           </button>
 
-          <button onClick={() => setView('leaderboards')} aria-pressed={view === 'leaderboards'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <button onClick={() => { try { router.push('/admin/leaderboards'); } catch (e) { window.location.href = '/admin/leaderboards'; } }} aria-pressed={view === 'leaderboards'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="#111"/></svg>
             <div style={{ fontSize: 11, color: view === 'leaderboards' ? '#000' : '#6b7280' }}>Leaderboards</div>
           </button>
 
-          <button onClick={() => { try { router.push('/admin/sessions'); } catch (e) { window.location.href = '/admin/sessions'; } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18v2H3V6zm0 5h12v2H3v-2zm0 5h8v2H3v-2z" fill="#111"/></svg>
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Sessions</div>
-          </button>
+          {/* Sessions link removed per request */}
 
           <button onClick={() => { try { router.push('/admin/achievements'); } catch (e) { window.location.href = '/admin/achievements'; } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="#111"/></svg>

@@ -311,31 +311,44 @@ export default function PlayerCard({
         </div>
       </div>
 
-      {/* Footer: sessions link + add button */}
+      {/* Footer: left (sessions/admin) and right (skill breakdown + add) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        {!isAdmin && (
-          <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontStyle: 'italic', fontSize: 11, color: '#000', textDecoration: 'none' }}>skill breakdown</a>
-        )}
-
-        {isAdmin && (
-          <>
+        <div style={{ minHeight: 18, display: 'flex', alignItems: 'center' }}>
+          {isAdmin ? (
             <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontSize: 11, color: '#000', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
+          ) : (
+            <div style={{ width: 10 }} />
+          )}
+        </div>
 
-            <div
-              onClick={() => {
-                if (typeof onAddStats === 'function') { onAddStats(player); return; }
-                const pid = player?.id ?? player?.playerId ?? '';
-                if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
-              }}
-              title="Add session"
-              style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="#1E1E1E" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!isAdmin && (
+            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontStyle: 'italic', fontSize: 11, color: '#000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span>skill breakdown</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M9 6l6 6-6 6" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
-            </div>
-          </>
-        )}
+            </a>
+          )}
+
+          {isAdmin && (
+            <>
+              <div
+                onClick={() => {
+                  if (typeof onAddStats === 'function') { onAddStats(player); return; }
+                  const pid = player?.id ?? player?.playerId ?? '';
+                  if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
+                }}
+                title="Add session"
+                style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="#1E1E1E" />
+                </svg>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
