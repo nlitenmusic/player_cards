@@ -3,6 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Color tokens used across the app. Prefer using these instead of hard-coded values. */
+  --card-bg: #ffffff;
+  --card-fg: #111827;
+  --muted: #6b7280;
+  --border: #e6e6e6;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --danger: #ef4444;
+  --success: #10b981;
 }
 
 @theme inline {
@@ -16,6 +26,15 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    --card-bg: #0f1724;
+    --card-fg: #e6eef8;
+    --muted: #9ca3af;
+    --border: #1f2937;
+    --accent: #3b82f6;
+    --accent-contrast: #0b1220;
+    --danger: #f87171;
+    --success: #34d399;
   }
 }
 
@@ -23,4 +42,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Base element styles using tokens - these help native controls adapt to theme */
+input, textarea, select {
+  background: var(--card-bg);
+  color: var(--card-fg);
+  border: 1px solid var(--border);
+}
+
+button {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border: 1px solid transparent;
+}
+
+/* Fallback for elements that still use white backgrounds inline: add subtle outline in dark mode */
+@media (prefers-color-scheme: dark) {
+  [style*="background: #fff"], [style*="background: #ffffff"] {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+    background-color: rgba(255,255,255,0.02) !important;
+    color: var(--card-fg) !important;
+  }
 }

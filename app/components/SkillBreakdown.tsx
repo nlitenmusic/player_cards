@@ -60,10 +60,23 @@ export default function SkillBreakdown({ stats, player, sessionDate }: { stats: 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
       <div style={{ width: 820, maxWidth: '100%', background: '#fff', padding: 16, borderRadius: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexDirection: 'column', gap: 12 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{(player?.first_name || '') + (player?.last_name ? ` ${player.last_name}` : '')}</div>
             {sessionDate && <div style={{ color: '#6b7280', fontSize: 13, marginTop: 4 }}>Session date: {String(sessionDate).slice(0,10)}</div>}
+          </div>
+
+          {/* Color key / legend for band meanings */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {['Unstable','Conditional','Functional','Competitive','Advanced / Pro-Track','Tour Reference'].map((name, idx) => {
+              const { background, color } = computeBandColor(idx, 0.6);
+              return (
+                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#374151' }}>
+                  <div style={{ width: 14, height: 14, borderRadius: 4, background, border: '1px solid rgba(0,0,0,0.06)' }} />
+                  <div style={{ whiteSpace: 'nowrap' }}>{name}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

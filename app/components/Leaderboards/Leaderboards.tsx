@@ -4,18 +4,6 @@ import LeaderboardTable from "./LeaderboardTable";
 import { SKILL_LABELS, SKILL_KEYS, CPAST } from "../../lib/skills";
 import { macroTiers } from "../../lib/tiers";
 
-type ReferenceKeyProps = {
-  skill: string;
-  component: string;
-};
-
-function ReferenceKey({ skill, component }: ReferenceKeyProps) {
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <strong>Reference:</strong> {skill.toUpperCase()} — {component.toUpperCase()}
-    </div>
-  );
-}
 
 export default function Leaderboards() {
   const [entries, setEntries] = useState<any[]>([]);
@@ -37,37 +25,50 @@ export default function Leaderboards() {
   useEffect(() => { load(); }, [skill, comp, tier]);
 
   return (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center' }}>
-        <div>
+    <div style={{ marginTop: 16, maxWidth: 393, boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong>Skill:</strong>
-          <select value={skill} onChange={(e)=>setSkill(e.target.value)} style={{ marginLeft: 8 }}>
-            {SKILL_KEYS.map((k,i)=> <option key={k} value={k}>{SKILL_LABELS[i]}</option>)}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <select value={skill} onChange={(e)=>setSkill(e.target.value)} style={{ minWidth: 160 }}>
+              {SKILL_KEYS.map((k,i)=> <option key={k} value={k}>{SKILL_LABELS[i]}</option>)}
+            </select>
+            <span style={{ color: '#6b7280' }}>▾</span>
+          </div>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong>Component:</strong>
-          <select value={comp} onChange={(e)=>setComp(e.target.value)} style={{ marginLeft: 8 }}>
-            {CPAST.map(c=> <option key={c.key} value={c.key}>{c.label}</option>)}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <select value={comp} onChange={(e)=>setComp(e.target.value)} style={{ minWidth: 160 }}>
+              {CPAST.map(c=> <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+            <span style={{ color: '#6b7280' }}>▾</span>
+          </div>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong>Tier:</strong>
-          <select value={tier} onChange={(e)=>setTier(e.target.value)} style={{ marginLeft: 8 }}>
-            <option value="">All</option>
-            {macroTiers.map((m)=> <option key={m.name} value={m.name.toLowerCase()}>{m.name}</option>)}
-          </select>
-        </div>
-
-        <div style={{ marginLeft: 'auto' }}>
-          <button onClick={load} style={{ padding: '6px 10px' }}>Refresh</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <select value={tier} onChange={(e)=>setTier(e.target.value)} style={{ minWidth: 160 }}>
+              <option value="">All</option>
+              {macroTiers.map((m)=> <option key={m.name} value={m.name.toLowerCase()}>{m.name}</option>)}
+            </select>
+            <span style={{ color: '#6b7280' }}>▾</span>
+          </div>
         </div>
       </div>
 
-      <ReferenceKey skill={skill} component={comp} />
-      <LeaderboardTable skill={skill} component={comp} entries={entries} title={`${skill.toUpperCase()} — ${comp.toUpperCase()}${tier ? ' — ' + tier : ''}`} />
+      {
+        (() => {
+          const idx = SKILL_KEYS.indexOf(skill);
+          const skillLabel = idx >= 0 ? SKILL_LABELS[idx] : (skill.charAt(0).toUpperCase() + skill.slice(1).toLowerCase());
+          const compObj = CPAST.find(c => c.key === comp);
+          const compLabel = compObj ? (compObj.label.charAt(0).toUpperCase() + compObj.label.slice(1)) : (comp.charAt(0).toUpperCase() + comp.slice(1).toLowerCase());
+          const title = `${skillLabel}: ${compLabel}`;
+          return <LeaderboardTable skill={skill} component={comp} entries={entries} title={title} />;
+        })()
+      }
     </div>
   );
 }
