@@ -11,7 +11,7 @@ export default function AdminDashboard() {
   const [filtered, setFiltered] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modalPlayer, setModalPlayer] = useState<any | null>(null);
-  const [view, setView] = useState<'cards' | 'leaderboards'>('cards');
+  const [view, setView] = useState<'cards' | 'leaderboards' | 'achievements'>('cards');
 
   const loadPlayers = async () => {
     try {
@@ -130,12 +130,12 @@ export default function AdminDashboard() {
             <div style={{ fontSize: 11 }}>Cards</div>
           </button>
 
-          <button onClick={() => { try { router.push('/admin/leaderboards'); } catch (e) { window.location.href = '/admin/leaderboards'; } }} aria-pressed={view === 'leaderboards'} style={{ color: view === 'leaderboards' ? '#000' : '#6b7280', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <button onClick={() => { setView('leaderboards'); try { router.push('/admin/leaderboards'); } catch (e) { window.location.href = '/admin/leaderboards'; } }} aria-pressed={view === 'leaderboards'} style={{ color: view === 'leaderboards' ? '#000' : '#6b7280', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="currentColor"/></svg>
             <div style={{ fontSize: 11 }}>Leaderboards</div>
           </button>
 
-          <button onClick={() => { try { router.push('/admin/achievements'); } catch (e) { window.location.href = '/admin/achievements'; } }} aria-pressed={view === 'achievements'} style={{ color: view === 'achievements' ? '#000' : '#6b7280', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <button onClick={() => { setView('achievements'); try { router.push('/admin/achievements'); } catch (e) { window.location.href = '/admin/achievements'; } }} aria-pressed={view === 'achievements'} style={{ color: view === 'achievements' ? '#000' : '#6b7280', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
             <div style={{ fontSize: 11 }}>Achievements</div>
           </button>
