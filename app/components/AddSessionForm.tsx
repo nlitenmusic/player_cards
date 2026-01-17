@@ -12,7 +12,7 @@ type AddSessionFormHandle = {
   submit: () => Promise<void>;
 };
 
-export default React.forwardRef(function AddSessionForm({ player, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, readOnly = false }: { player: any; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; readOnly?: boolean }, ref: React.Ref<AddSessionFormHandle>) {
+export default React.forwardRef(function AddSessionForm({ player, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, navSlot }: { player: any; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; navSlot?: React.ReactNode }, ref: React.Ref<AddSessionFormHandle>) {
   const skillLabels = ["Serve", "Return", "Forehand", "Backhand", "Volley", "Overhead", "Movement"];
   const componentKeys: ComponentKey[] = ['c', 'p', 'a', 's', 't'];
   const componentLabels: Record<ComponentKey, string> = {
@@ -40,7 +40,6 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
   hideDate = hideDate ?? false;
   hideNotes = hideNotes ?? false;
   showSaveButton = showSaveButton ?? true;
-  readOnly = readOnly ?? false;
   const [newFirstName, setNewFirstName] = useState<string>(player?.first_name ?? '');
   const [newLastName, setNewLastName] = useState<string>(player?.last_name ?? '');
   const [hoveredBand, setHoveredBand] = useState<{ skill: string; component: string; value: number | null } | null>(null);
@@ -113,6 +112,33 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
 
   useEffect(() => {
     return () => {};
+  }, []);
+
+  // On mount, scroll the nearest scrollable container (or the modal wrapper) to the bottom
+  useEffect(() => {
+    try {
+      const el = modalRef.current;
+      if (!el) return;
+
+      const findScrollContainer = (node: HTMLElement | null): HTMLElement | (Element & { scrollTop: number }) => {
+        let n: HTMLElement | null = node;
+        while (n && n !== document.body) {
+          const style = window.getComputedStyle(n);
+          const overflowY = style.overflowY;
+          if (overflowY === 'auto' || overflowY === 'scroll') return n;
+          n = n.parentElement;
+        }
+        return document.scrollingElement || document.documentElement;
+      };
+
+      const sc = findScrollContainer(el) as any;
+      const id = window.setTimeout(() => {
+        try { sc.scrollTop = sc.scrollHeight; } catch (e) {}
+      }, 50);
+      return () => window.clearTimeout(id);
+    } catch (e) {
+      // no-op
+    }
   }, []);
 
   const loadLatest = async () => {
@@ -441,26 +467,35 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
       <div style={{ width: '100%', maxWidth: 337 }}>
         <div style={{ fontWeight: 500, marginBottom: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, textAlign: 'center' }}>BAND KEY</div>
         <div style={{ display: 'flex', flexDirection: 'row', gap: 12, width: '100%' }}>
-          {[
-            { name: 'Unstable', range: '0–6', desc: 'Frequent errors; contact/timing vary' },
-            { name: 'Conditional', range: '7–12', desc: 'Works in controlled settings; breaks under pressure' },
-            { name: 'Functional', range: '13–18', desc: 'Reliable vs peers; may degrade under stress' },
-            { name: 'Competitive', range: '19–24', desc: 'Performance holds up in match play' },
-            { name: 'Advanced / Pro-Track', range: '25–30', desc: 'Advanced, maintains under fatigue and tactics' },
-            { name: 'Tour Reference', range: '31+', desc: 'Elite, baseline for top-level play' },
-          ].map((b, i) => {
-            // split into two columns of three items each
-            return null; // handled below
-          })}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.06em' }}>
-            <div>Unstable (0–6) Frequent errors; contact/timing vary</div>
-            <div>Conditional (7–12) Works in controlled settings; breaks under pressure</div>
-            <div>Functional (13–18) Reliable vs peers; may degrade under stress</div>
+            {[
+              { name: 'Unstable', range: '0–6', desc: 'Frequent errors; contact/timing vary' },
+              { name: 'Conditional', range: '7–12', desc: 'Works in controlled settings; breaks under pressure' },
+              { name: 'Functional', range: '13–18', desc: 'Reliable vs peers; may degrade under stress' },
+            ].map((b, i) => {
+              const sw = computeBandColor(i, 0.5);
+              return (
+                <div key={`l-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 3, background: sw.background, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }} />
+                  <div>{b.name} ({b.range}) {b.desc}</div>
+                </div>
+              );
+            })}
           </div>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.04em' }}>
-            <div>Competitive (19–24) Performance holds up in match play</div>
-            <div>Advanced (25–30) Advanced, maintains under fatigue and tactics</div>
-            <div>Tour Reference (31+) Elite, baseline for top-level play</div>
+            {[
+              { name: 'Competitive', range: '19–24', desc: 'Performance holds up in match play' },
+              { name: 'Advanced', range: '25–30', desc: 'Advanced, maintains under fatigue and tactics' },
+              { name: 'Tour Reference', range: '31+', desc: 'Elite, baseline for top-level play' },
+            ].map((b, i) => {
+              const sw = computeBandColor(i + 3, 0.5);
+              return (
+                <div key={`r-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 3, background: sw.background, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }} />
+                  <div>{b.name} ({b.range}) {b.desc}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -530,22 +565,22 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
           {!hideDate && (
             <>
               <label style={{ display: "block", fontSize: 12, color: "#6b7280" }}>Session date</label>
-                  <input type="date" value={date} onChange={(e) => handleDateChange(e.target.value)} disabled={readOnly} style={{ width: 200, padding: 8, marginTop: 6 }} />
+              <input type="date" value={date} onChange={(e) => handleDateChange(e.target.value)} style={{ width: 200, padding: 8, marginTop: 6 }} />
             </>
           )}
           {!player?.id && (
             <div style={{ marginTop: 8 }}>
               <label style={{ display: 'block', fontSize: 12, color: '#6b7280' }}>Player name</label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder="First name" disabled={readOnly} style={{ padding: 8, width: 200 }} />
-                <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder="Last name" disabled={readOnly} style={{ padding: 8, width: 200 }} />
+                <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder="First name" style={{ padding: 8, width: 200 }} />
+                <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder="Last name" style={{ padding: 8, width: 200 }} />
               </div>
             </div>
           )}
           {!hideNotes && (
             <div style={{ marginTop: 8 }}>
               <label style={{ display: 'block', fontSize: 12, color: '#6b7280' }}>Notes</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this session (coach comments, injuries, drills)" readOnly={readOnly} style={{ width: '100%', minHeight: 80, padding: 8, marginTop: 6 }} />
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this session (coach comments, injuries, drills)" style={{ width: '100%', minHeight: 80, padding: 8, marginTop: 6 }} />
             </div>
           )}
           {/* previous session chips removed for inline page layout */}
@@ -555,7 +590,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
           <div style={{ width: '100%', maxWidth: 360 }}>
             {/* Carousel: show one skill at a time */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <button onClick={() => setCurrentSkillIndex((i) => (i - 1 + skillLabels.length) % skillLabels.length)} style={{ padding: '6px 10px' }}>‹</button>
+              <button className="chev-btn chev-left" onClick={() => setCurrentSkillIndex((i) => (i - 1 + skillLabels.length) % skillLabels.length)} style={{ padding: '6px 10px' }}>‹</button>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontWeight: 700, fontSize: 20 }}>{skillLabels[currentSkillIndex]}</div>
                 <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>Overall: {(() => {
@@ -567,10 +602,10 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                   return present.length ? Math.round((present.reduce((a,b)=>a+b,0)/present.length) * 100) / 100 : '';
                 })()}</div>
               </div>
-              <button onClick={() => setCurrentSkillIndex((i) => (i + 1) % skillLabels.length)} style={{ padding: '6px 10px' }}>›</button>
+              <button className="chev-btn chev-right" onClick={() => setCurrentSkillIndex((i) => (i + 1) % skillLabels.length)} style={{ padding: '6px 10px' }}>›</button>
             </div>
 
-            <div style={{ marginTop: 12, background: '#F9F9F9', borderRadius: 12, padding: 12 }}>
+            <div className="skill-panel" style={{ marginTop: 12, background: '#F9F9F9', borderRadius: 12, padding: 12 }}>
               {(['c','p','a','s','t'] as ComponentKey[]).map((compKey) => {
                 const ck = compKey as ComponentKey;
                 const skillLabel = skillLabels[currentSkillIndex];
@@ -584,22 +619,6 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                   <div key={compKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       {!hide ? (
-                        readOnly ? (
-                          <div style={{
-                            height: 36,
-                            minWidth: 120,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid #ccc',
-                            borderRadius: 6,
-                            background: heatStyle?.background,
-                            color: heatStyle?.color,
-                            fontSize: 16,
-                            fontWeight: 600,
-                            padding: '0 8px'
-                          }}>{value ?? ''}</div>
-                        ) : (
                         <div style={{ /* Combined Toggle Stat Button */
                           display: 'flex',
                           alignItems: 'center',
@@ -612,7 +631,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                           minWidth: 120,
                           justifyContent: 'space-between'
                         }}>
-                          <button onClick={() => changeComponentBy(skillLabel, ck, -1)} style={{
+                          <button className="stat-chev" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => changeComponentBy(skillLabel, ck, -1)} style={{
                             padding: '0 8px',
                             height: '100%',
                             background: 'transparent',
@@ -626,6 +645,10 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                           <input
                             value={value ?? ''}
                             onChange={(e) => updateCell(skillLabel, ck, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowUp') { changeComponentBy(skillLabel, ck, 1); e.preventDefault(); }
+                              else if (e.key === 'ArrowDown') { changeComponentBy(skillLabel, ck, -1); e.preventDefault(); }
+                            }}
                             style={{
                               flexGrow: 1,
                               height: '100%',
@@ -639,7 +662,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                               margin: '0 4px'
                             }}
                           />
-                          <button onClick={() => changeComponentBy(skillLabel, ck, 1)} style={{
+                          <button className="stat-chev" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => changeComponentBy(skillLabel, ck, 1)} style={{
                             padding: '0 8px',
                             height: '100%',
                             background: 'transparent',
@@ -651,9 +674,8 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                             alignItems: 'center'
                           }}>›</button>
                         </div>
-                        )
                       ) : (
-                        <div style={{ /* N/A State */
+                        <div className="na-box" style={{ /* N/A State */
                           height: 36,
                           minWidth: 120,
                           display: 'flex',
@@ -669,8 +691,8 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
                       )}
                       <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{componentLabels[ck]}</div>
                     </div>
-                    <BandTooltip value={value ?? ''} skill={skillLabel} component={String(ck)} onHover={handleHover}>
-                      <span style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
+                      <BandTooltip value={value ?? ''} skill={skillLabel} component={String(ck)} onHover={handleHover}>
+                      <span tabIndex={-1} aria-hidden="true" style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
                     </BandTooltip>
                   </div>
                 );
@@ -679,7 +701,7 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
           </div>
 
           <div style={{ width: '100%', boxSizing: 'border-box', maxWidth: 359 }}>
-            <div style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', gap: 32, position: 'relative', background: '#D9D9D9', border: '2.65693px solid rgba(0,0,0,0.23)', borderRadius: 10 }}
+            <div className="band-key-panel" style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', gap: 32, position: 'relative', background: '#D9D9D9', border: '2.65693px solid rgba(0,0,0,0.23)', borderRadius: 10 }}
               onMouseEnter={() => { clearHideTimer(); }}
               onMouseLeave={() => { scheduleHide(); }}
             >
@@ -697,17 +719,22 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
 
         {/* duplicate band panel removed — the Figma-styled More info box above is the canonical target for hover events */}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-
-          {selectedSessionId && !hideDelete && !readOnly && (
-            <button onClick={deleteSelectedSession} disabled={loading} style={{ padding: "8px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 4 }}>
-              {loading ? "Deleting..." : "Delete session"}
-            </button>
-          )}
-          {showSaveButton && !readOnly && (
-            <button onClick={submit} disabled={loading} style={{ padding: "8px 12px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 4 }}>
-              {loading ? "Saving..." : "Save session"}
-            </button>
+        <div style={{ marginTop: 6 }}>
+          {navSlot ? (
+            navSlot
+          ) : (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
+              {selectedSessionId && !hideDelete && (
+                  <button className="text-btn" onClick={deleteSelectedSession} disabled={loading} style={{ padding: "4px 8px", background: "transparent", color: "#ef4444", border: "none" }}>
+                    {loading ? "Deleting..." : "Delete session"}
+                  </button>
+                )}
+                {showSaveButton && (
+                  <button className="text-btn" onClick={submit} disabled={loading} style={{ padding: "4px 8px", background: "transparent", color: "var(--accent)", border: "none", fontWeight: 600 }}>
+                    {loading ? "Saving..." : "Save session"}
+                  </button>
+                )}
+            </div>
           )}
         </div>
       </div>

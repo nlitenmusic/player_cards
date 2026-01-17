@@ -214,8 +214,8 @@ export default function PlayerCard({
         position: 'relative',
         width: '100%',
         maxWidth: 180,
-        background: '#F4F4F4',
-        color: '#111',
+        background: 'var(--card-bg)',
+        color: 'var(--card-fg)',
         boxSizing: 'border-box',
         borderRadius: 8,
         overflow: 'hidden',
@@ -223,30 +223,37 @@ export default function PlayerCard({
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
+        border: '1px solid var(--border)'
       }}
     >
-      <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 14, fontWeight: 700, background: 'transparent', padding: 0, borderRadius: 0, boxShadow: 'none', zIndex: 5, color: '#111' }}>
-        {Math.round(ratingNum * 100) / 100}
-      </div>
+      {/* overall rating moved below the avatar (see header) */}
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
-          <div style={{ width: 40, height: 40, borderRadius: 20, background: '#8E8E8E' }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ width: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
+                <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
+              </svg>
+            </div>
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{Math.round(ratingNum * 100) / 100}</div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1, paddingRight: 44 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.first_name || ''}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--card-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.first_name || ''}</div>
           { (player.last_name && String(player.last_name).trim() !== '') ? (
-            <div style={{ fontSize: 10, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.last_name}</div>
+            <div style={{ fontSize: 10, color: 'var(--card-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.last_name}</div>
           ) : null }
-          <div style={{ fontSize: 9, color: '#606060' }}>{tierName}</div>
+          <div style={{ fontSize: 9, color: 'var(--muted)' }}>{tierName}</div>
 
-          <div style={{ marginTop: 6, width: '65%', maxWidth: 110, height: 6, borderRadius: 4, background: '#BDBAB8', overflow: 'hidden' }}>
+          <div style={{ marginTop: 6, width: '100%', height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
             <div style={{ width: `${Math.round(levelProgressPct)}%`, height: '100%', background: rankColor }} />
           </div>
         </div>
 
-        {/* rating moved to absolute top-right badge so tier/progress can span full width */}
+        {/* rating moved below avatar so tier/progress can span remaining width */}
       </div>
 
       {/* Skill cluster: 2-3-2 pentagon-like layout (top 2, middle 3, bottom 2) */}
@@ -265,7 +272,7 @@ export default function PlayerCard({
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
                   </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: '#000', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>
               );
             })}
@@ -284,7 +291,7 @@ export default function PlayerCard({
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
                   </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: '#000', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>
               );
             })}
@@ -303,7 +310,7 @@ export default function PlayerCard({
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
                   </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: '#000', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>
               );
             })}
@@ -314,8 +321,8 @@ export default function PlayerCard({
       {/* Footer: left (sessions/admin) and right (skill breakdown + add) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minHeight: 18, display: 'flex', alignItems: 'center' }}>
-          {isAdmin ? (
-            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontSize: 11, color: '#000', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
+            {isAdmin ? (
+            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
           ) : (
             <div style={{ width: 10 }} />
           )}
@@ -323,10 +330,10 @@ export default function PlayerCard({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {!isAdmin && (
-            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontStyle: 'italic', fontSize: 11, color: '#000', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span>skill breakdown</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M9 6l6 6-6 6" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
             </a>
           )}
@@ -340,10 +347,10 @@ export default function PlayerCard({
                   if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
                 }}
                 title="Add session"
-                style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}
+                style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--card-fg)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="#1E1E1E" />
+                  <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
                 </svg>
               </div>
             </>

@@ -59,7 +59,7 @@ export default function AchievementsPage() {
   }
 
   return (
-    <div style={{ padding: '48px 20px 20px', maxWidth: 980, margin: '0 auto' }}>
+    <div className="achievements-page" style={{ padding: '48px 20px 20px', maxWidth: 980, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         {!loading && <h1 style={{ margin: 0, textTransform: 'uppercase' }}>ACHIEVEMENTS</h1>}
       </div>
@@ -93,9 +93,9 @@ export default function AchievementsPage() {
             {items.map(a => (
               <tr key={a.id || a.key} style={{ borderBottom: '1px solid #f1f1f1' }}>
                 <td style={{ padding: '10px 12px', width: 80 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: a.icon_url ? 'transparent' : '#efefef', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)', border: '2px solid #000', boxSizing: 'border-box' }}>
+                  <div className="achievement-icon__container" style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: a.icon_url ? 'transparent' : '#efefef', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)', border: '2px solid #000', boxSizing: 'border-box' }}>
                     {a.icon_url ? (
-                      <img src={a.icon_url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <img className="achievement-icon__img" src={a.icon_url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     ) : (
                       <span style={{ fontSize: 20 }}>🏅</span>
                     )}
@@ -108,13 +108,13 @@ export default function AchievementsPage() {
           </tbody>
         </table>
       )}
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
+      <div id="bottomNav" className="bottom-nav" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
         <Link href="/">
           <button aria-label="Cards" title="Cards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 20, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="20" height="14" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                <rect x="1" y="2" width="24" height="14" rx="2" stroke="#111" strokeWidth="1.5" fill="none" />
-                <rect x="5" y="6" width="10" height="6" rx="1" stroke="#111" strokeWidth="1" fill="#f7f7f7" />
+                <rect x="1" y="2" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <rect x="5" y="6" width="10" height="6" rx="1" stroke="currentColor" strokeWidth="1" fill="currentColor" />
               </svg>
             </div>
             <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
@@ -123,11 +123,20 @@ export default function AchievementsPage() {
 
         <Link href="/achievements">
           <button aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="#111"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
             <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
           </button>
         </Link>
       </div>
+      <style>{`
+        @media (prefers-color-scheme: dark) {
+          .achievements-page .achievement-icon__container { border-color: rgba(255,255,255,0.12) !important; background: transparent !important; }
+          .achievements-page .achievement-icon__img { filter: invert(1) brightness(1.6) saturate(1.1); mix-blend-mode: normal; }
+          .achievements-page svg path, .achievements-page svg rect, .achievements-page svg circle, .achievements-page svg polygon, .achievements-page svg line { stroke: currentColor !important; fill: currentColor !important; }
+          .achievements-page svg { color: #fff !important; }
+          .achievements-page { color: #fff; }
+        }
+      `}</style>
     </div>
   );
 }

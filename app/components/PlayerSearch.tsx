@@ -1,10 +1,11 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 
-export default function PlayerSearch({ players, onFiltered, placeholder = 'Search player' }: {
+export default function PlayerSearch({ players, onFiltered, placeholder = 'Search player', variant }: {
   players: any[];
   onFiltered: (p: any[]) => void;
   placeholder?: string;
+  variant?: 'default' | 'admin';
 }) {
   const [q, setQ] = useState("");
   const timer = useRef<number | null>(null);
@@ -33,9 +34,11 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
     return () => { if (timer.current) window.clearTimeout(timer.current); };
   }, [q, players, onFiltered]);
 
+  const cls = `player-search${variant === 'admin' ? ' player-search--admin' : ''}`;
+
   return (
-    <div style={{ marginBottom: 12, width: '100%', position: 'relative', background: 'transparent', paddingTop: 6, paddingBottom: 6 }}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#9ca3af' }}>
+    <div className={cls} style={{ marginBottom: 12, width: '100%', position: 'sticky', top: 0, zIndex: 40, paddingTop: 6, paddingBottom: 6 }}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="player-search__icon" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }}>
         <circle cx="11" cy="11" r="6"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
@@ -43,7 +46,7 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
         placeholder={placeholder}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        style={{ width: '100%', padding: '8px 10px 8px 36px', borderRadius: 6, border: '1px solid #e5e7eb', boxSizing: 'border-box', background: '#fff' }}
+        style={{ width: '100%', padding: '8px 10px 8px 36px', borderRadius: 6, boxSizing: 'border-box' }}
       />
     </div>
   );

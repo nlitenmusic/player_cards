@@ -4,6 +4,10 @@
   --background: #ffffff;
   --foreground: #171717;
 
+  /* Component panel tokens */
+  --component-panel-bg: #F9F9F9;
+  --component-na-bg: #f0f0f0;
+
   /* Color tokens used across the app. Prefer using these instead of hard-coded values. */
   --card-bg: #ffffff;
   --card-fg: #111827;
@@ -15,6 +19,18 @@
   --success: #10b981;
 }
 
+/* Reset defaults to avoid layout gaps (remove browser body margin, ensure full-height) */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* Use dynamic viewport height so backgrounds reach the top on mobile browsers */
+body {
+  min-height: 100dvh;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -24,17 +40,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Strong dark theme: black background and white foreground */
+    --background: #000000;
+    --foreground: #ffffff;
 
-    --card-bg: #0f1724;
-    --card-fg: #e6eef8;
+    /* Card background set to dark navy for separation against page background */
+    --card-bg: #071029;
+    --card-fg: #ffffff;
     --muted: #9ca3af;
-    --border: #1f2937;
+    /* Slightly lighter translucent border to separate cards from background */
+    --border: rgba(255,255,255,0.06);
     --accent: #3b82f6;
     --accent-contrast: #0b1220;
     --danger: #f87171;
     --success: #34d399;
+    --component-panel-bg: #0b0b0b;
+    --component-na-bg: #111111;
   }
 }
 
@@ -57,11 +78,405 @@ button {
   border: 1px solid transparent;
 }
 
+/* PlayerSearch styles */
+.player-search {
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.player-search__icon {
+  color: #9ca3af;
+}
+.player-search input {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+}
+
+/* Admin / homepage variant:
+   - light mode: white background, black text/icon
+   - dark mode: overridden inside prefers-color-scheme: dark below */
+.player-search.player-search--admin {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.player-search.player-search--admin .player-search__icon {
+  color: #111827;
+}
+.player-search.player-search--admin input {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+}
+
+/* Admin variant: black background, white stroke, white icon */
+@media (prefers-color-scheme: dark) {
+  .player-search.player-search--admin {
+    background: #000000;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .player-search.player-search--admin .player-search__icon {
+    color: #ffffff;
+  }
+  .player-search.player-search--admin input {
+    background: #000000;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+  }
+}
+
+  /* Add-player button: ensure white plus on black in dark mode */
+  .add-player-btn {
+    background: transparent;
+    color: #111827;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    button.add-player-btn {
+      background: #000000 !important;
+      color: #ffffff !important;
+      border: none !important;
+      border-radius: 4px !important;
+      padding: 4px !important;
+    }
+  }
+
 /* Fallback for elements that still use white backgrounds inline: add subtle outline in dark mode */
 @media (prefers-color-scheme: dark) {
   [style*="background: #fff"], [style*="background: #ffffff"] {
     box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
     background-color: rgba(255,255,255,0.02) !important;
     color: var(--card-fg) !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Keep global body and button theme in dark mode without overriding inline backgrounds */
+  body {
+    background: var(--background) !important;
+    color: var(--foreground) !important;
+  }
+
+  button {
+    color: var(--accent-contrast) !important;
+    background: var(--accent) !important;
+    border-color: transparent !important;
+  }
+}
+
+/* Bottom nav buttons should be transparent and inherit foreground color */
+.bottom-nav button {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--foreground) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.bottom-nav button svg { color: inherit !important; }
+
+/* High-specificity override to ensure nav buttons stay transparent in dark mode */
+#bottomNav button {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--foreground) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#bottomNav button svg { color: inherit !important; }
+
+/* Dark-mode nav focus/box overrides — remove aggressive blue box-shadow and
+   ensure bottom nav remains legible in dark theme. */
+@media (prefers-color-scheme: dark) {
+  /* Ensure nav has a stable dark card background (overrides inline white) */
+  #bottomNav, .bottom-nav {
+    background: var(--card-bg) !important;
+    color: var(--foreground) !important;
+    border-top: 1px solid rgba(255,255,255,0.04) !important;
+  }
+
+  /* Remove default focus outlines/blue rings, but preserve a subtle accessible focus state */
+  #bottomNav :where(button,a,[role="button"]) {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  #bottomNav :where(button,a,[role="button"]):focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.06) !important;
+  }
+
+  /* Button label / icon contrast */
+  #bottomNav button, .bottom-nav button {
+    color: var(--muted) !important;
+  }
+  /* Do not change the color for active nav items; keep muted color for visual uniformity */
+  #bottomNav button[aria-pressed="true"], .bottom-nav button[aria-pressed="true"] {
+    color: var(--muted) !important;
+  }
+
+  /* Force icons to follow text color */
+  #bottomNav svg, .bottom-nav svg {
+    fill: currentColor !important;
+    stroke: currentColor !important;
+    color: inherit !important;
+  }
+}
+
+/* Admin achievements page: panel styles and dark-mode overrides */
+.admin-achievements-page .achievement-field {
+  transition: background .12s, color .12s, border-color .12s;
+  background: #ffffff;
+  color: var(--card-fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.admin-achievements-page .achievement-item {
+  transition: background .12s, color .12s, border-color .12s;
+  background: #fafafa;
+  color: var(--card-fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+.admin-achievements-page .achievements-header h2 { color: var(--card-fg); margin: 0; }
+
+/* Text-only buttons used in forms/nav that should be visible in both themes
+   - removes colored backgrounds and browser blue focus rings while
+     preserving an accessible focus-visible outline
+*/
+.text-btn {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  padding: 4px 8px !important;
+  -webkit-tap-highlight-color: transparent !important;
+  box-shadow: none !important;
+}
+.text-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.text-btn:focus-visible {
+  outline: none !important;
+  border-radius: 6px !important;
+  /* neutral subtle ring: dark in light-mode, light in dark-mode */
+  box-shadow: 0 0 0 4px rgba(17,24,39,0.06) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .text-btn:focus-visible {
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.06) !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .admin-achievements-page .achievement-field {
+    background: var(--card-bg) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+  }
+  .admin-achievements-page .achievement-item {
+    background: rgba(255,255,255,0.02) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+  }
+  .admin-achievements-page .achievements-header h2 { color: var(--foreground) !important; }
+}
+
+/* Make native date input picker icon visible in dark mode */
+@media (prefers-color-scheme: dark) {
+  input[type="date"] {
+    background: var(--card-bg) !important;
+    color: var(--card-fg) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  /* WebKit-based browsers: invert the calendar picker icon so it appears white on dark backgrounds */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    -webkit-filter: invert(1) brightness(1.2) !important;
+    filter: invert(1) brightness(1.2) !important;
+  }
+
+  /* Best-effort for other engines: ensure text color is the foreground token */
+  input[type="date"]::-moz-focus-inner {
+    color: var(--card-fg) !important;
+  }
+}
+
+/* Carousel chevrons (left/right) — visible button backgrounds and no browser assist boxes */
+.chev-btn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background: var(--card-bg) !important; /* white in light, dark in dark */
+  color: var(--card-fg) !important; /* dark in light, white in dark */
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Remove focus / active rings and any UA highlight in all modes */
+.chev-btn:focus, .chev-btn:focus-visible, .chev-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure inner focus artifact in Firefox is removed */
+.chev-btn::-moz-focus-inner { border: 0 !important; }
+
+/* Make the skill component table (the panel under the skill/overall header) clearly darker than the card in dark mode */
+@media (prefers-color-scheme: dark) {
+  /* Prefer class-based targeting when available */
+  .skill-panel {
+    background: rgba(255,255,255,0.02) !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) !important;
+    border: 1px solid rgba(255,255,255,0.04) !important;
+    box-shadow: 0 8px 24px rgba(2,6,23,0.55) inset, 0 2px 6px rgba(0,0,0,0.45) !important;
+    color: var(--card-fg) !important;
+  }
+
+  .skill-panel input,
+  .skill-panel textarea {
+    background: transparent !important;
+    color: var(--card-fg) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+  }
+
+  .band-key-panel {
+    background: rgba(255,255,255,0.01) !important;
+    border: 1px solid rgba(255,255,255,0.03) !important;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.45) inset !important;
+    color: var(--card-fg) !important;
+  }
+
+  .na-box {
+    background: var(--component-na-bg) !important;
+    color: var(--card-fg) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+  }
+
+  /* Fallback attribute selectors kept for older markup or inline styles */
+  [style*="#F9F9F9" i], [style*="#f9f9f9" i], [style*="rgb(249, 249, 249)"] {
+    background: rgba(255,255,255,0.02) !important;
+  }
+
+  [style*="#D9D9D9" i], [style*="rgb(217, 217, 217)"] {
+    background: rgba(255,255,255,0.01) !important;
+  }
+}
+
+/* Broad dark-mode focus/tap-highlight fixes and chevron/nav visuals */
+@media (prefers-color-scheme: dark) {
+  /* Remove mobile tap flash */
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Remove strong UA focus outlines/blue boxes on core interactive elements */
+  button:focus,
+  input:focus,
+  textarea:focus,
+  select:focus,
+  a:focus,
+  div[role="button"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Provide a subtle visible focus for keyboard users */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  a:focus-visible,
+  div[role="button"]:focus-visible {
+    outline: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.04) !important;
+  }
+
+  /* Make chevrons and bottom-nav buttons transparent and follow card foreground */
+  .chev-btn,
+  .bottom-nav button,
+  #bottomNav button {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: var(--card-fg) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Target skill-panel inner buttons to suppress strong UA focus rings while keeping subtle focus-visible */
+.skill-panel button {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+.skill-panel button:focus-visible {
+  outline: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.03) !important;
+}
+.skill-panel input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Target the stat chevron buttons specifically to avoid UA blue focus boxes in Chrome */
+.skill-panel .stat-chev {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  padding: 0 8px !important;
+  height: 100% !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.skill-panel .stat-chev:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.skill-panel .stat-chev:focus-visible {
+  outline: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.03) !important;
+}
+.skill-panel .stat-chev::-moz-focus-inner { border: 0 !important; }
+
+/* Improve readability of band key / description text in dark mode */
+@media (prefers-color-scheme: dark) {
+  .band-key-panel {
+    color: var(--card-fg) !important;
+  }
+
+  /* Override inline muted colors inside the band key content so descriptions are legible */
+  .band-key-panel, .band-key-panel * {
+    color: var(--card-fg) !important;
+  }
+
+  /* Use a slightly reduced alpha for secondary text to keep hierarchy but remain readable */
+  .band-key-panel .muted, .band-key-panel small, .band-key-panel span[role="note"] {
+    color: rgba(255,255,255,0.85) !important;
+  }
+}
+
+/* Stronger override: force near-white descriptive text in band-key panel for maximum contrast */
+@media (prefers-color-scheme: dark) {
+  .band-key-panel, .band-key-panel * {
+    color: rgba(255,255,255,0.96) !important;
+  }
+
+  /* Keep more detailed explanatory text slightly less prominent but still clear */
+  .band-key-panel .muted, .band-key-panel small, .band-key-panel .description, .band-key-panel div > div > div {
+    color: rgba(255,255,255,0.9) !important;
+  }
+
+  /* Ensure any inline-colored spans are overridden */
+  .band-key-panel [style*="color:"] {
+    color: rgba(255,255,255,0.96) !important;
   }
 }

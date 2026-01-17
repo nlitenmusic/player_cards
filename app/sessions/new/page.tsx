@@ -7,7 +7,7 @@ export default async function NewSessionPage({ searchParams }: { searchParams?: 
 	const playerId = sp?.player_id ?? null;
 
 	return (
-		<div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
+		<div style={{ display: 'flex', justifyContent: 'center', paddingTop: 0, background: 'var(--card-bg)' }}>
 			<AddSessionPageClient playerId={playerId} />
 		</div>
 	);

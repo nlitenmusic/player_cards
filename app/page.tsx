@@ -113,7 +113,7 @@ export default function Home() {
     <div className="flex min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main style={{ paddingTop: 48 }} className="flex min-h-screen w-full flex-col items-start justify-between py-32 px-4 bg-white dark:bg-black">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', width: '100%', textTransform: 'uppercase' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>Player</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)' }}>Player</div>
 
           <div style={{ width: 40, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#fff', border: '2px solid #111', boxSizing: 'border-box' }}>
             <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -122,11 +122,11 @@ export default function Home() {
             </svg>
           </div>
 
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>Cards</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)' }}>Cards</div>
         </div>
 
         <div style={{ width: "100%", boxSizing: "border-box", padding: 8, paddingTop: 56, paddingBottom: 100 }}>
-          <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
+          <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} variant="admin" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginTop: 12, boxSizing: "border-box", alignItems: "start" }}>
             {(filtered ?? players).map((p: any, i: number) => (
               <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} />
@@ -135,13 +135,13 @@ export default function Home() {
         </div>
       </main>
 
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
+      <div id="bottomNav" className="bottom-nav" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
         <Link href="/">
           <button aria-label="Cards" title="Cards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 20, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 20, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="20" height="14" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                <rect x="1" y="2" width="24" height="14" rx="2" stroke="#111" strokeWidth="1.5" fill="none" />
-                <rect x="5" y="6" width="10" height="6" rx="1" stroke="#111" strokeWidth="1" fill="#f7f7f7" />
+                <rect x="1" y="2" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <rect x="5" y="6" width="10" height="6" rx="1" stroke="currentColor" strokeWidth="1" fill="currentColor" />
               </svg>
             </div>
             <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
@@ -150,7 +150,7 @@ export default function Home() {
 
         <Link href="/achievements">
           <button aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="#111"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
             <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
           </button>
         </Link>
