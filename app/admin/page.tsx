@@ -12,6 +12,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [modalPlayer, setModalPlayer] = useState<any | null>(null);
   const [view, setView] = useState<'cards' | 'leaderboards' | 'achievements'>('cards');
+  const [authed, setAuthed] = useState<boolean>(false);
+  const [pwAttempt, setPwAttempt] = useState<string>("");
+  const [pwError, setPwError] = useState<string | null>(null);
 
   const loadPlayers = async () => {
     try {
@@ -47,6 +50,55 @@ export default function AdminDashboard() {
     const pid = player?.id ?? player?.playerId ?? '';
     try { router.push(`/sessions/new?player_id=${encodeURIComponent(String(pid))}`); } catch (e) { window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`; }
   };
+
+  useEffect(() => {
+    try {
+      const flag = sessionStorage.getItem('pc_admin_authed');
+      if (flag === '1') setAuthed(true);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const handlePwSubmit = (e?: React.FormEvent) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if ((pwAttempt || "").toString() === "CPAST") {
+      try { sessionStorage.setItem('pc_admin_authed', '1'); } catch (e) {}
+      setAuthed(true);
+      setPwError(null);
+      setPwAttempt("");
+    } else {
+      setPwError('Incorrect password');
+      setPwAttempt("");
+    }
+  };
+
+  if (!authed) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <form onSubmit={handlePwSubmit} style={{ width: 420, maxWidth: '100%', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.12)', background: '#fff' }}>
+          <h3 style={{ margin: 0, marginBottom: 8 }}>Admin Access</h3>
+          <div style={{ color: '#6b7280', marginBottom: 12, fontSize: 13 }}>Enter the admin password to continue.</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              autoFocus
+              value={pwAttempt}
+              onChange={(e) => setPwAttempt(e.target.value)}
+              placeholder="Password"
+              type="password"
+              aria-label="Admin password"
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb' }}
+            />
+            <button type="submit" style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: '#111', color: '#fff', cursor: 'pointer' }}>Unlock</button>
+          </div>
+          {pwError && <div style={{ marginTop: 10, color: 'crimson' }}>{pwError}</div>}
+          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button type="button" onClick={() => { try { router.push('/'); } catch (e) { window.location.href = '/'; } }} style={{ background: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   const handleEditPlayer = (player: any) => {
     console.log("Edit player:", player.id);

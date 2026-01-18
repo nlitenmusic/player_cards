@@ -42,7 +42,7 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
   const cls = `player-search${variant === 'admin' ? ' player-search--admin' : ''}`;
 
   return (
-    <div className={cls} style={{ marginBottom: 12, width: '100%', position: 'sticky', top: 0, zIndex: 40, paddingTop: 6, paddingBottom: 6 }}>
+    <div className={cls} style={{ marginBottom: 12, width: '100%', paddingTop: 6, paddingBottom: 6 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="player-search__icon" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16 }}>
