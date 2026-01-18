@@ -10,7 +10,7 @@ export const macroTiers = [
   { name: "Competitor", min: 18 },
   { name: "Advanced Competitor", min: 21 },
   { name: "Performance Player", min: 24 },
-  { name: "Elite Junior", min: 27 },
+  { name: "Elite Performer", min: 27 },
   { name: "College Performance", min: 30 },
   { name: "Professional Track", min: 33 },
 ];
@@ -25,7 +25,7 @@ export const tierColorMap: Record<string, string> = {
   Competitor: "#111827",
   "Advanced Competitor": "#0b1220",
   "Performance Player": "#10b981",
-  "Elite Junior": "#a78bfa",
+  "Elite Performer": "#a78bfa",
   "College Performance": "#f59e0b",
   "Professional Track": "#06b6d4",
 };
