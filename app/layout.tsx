@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import AdminToggle from "./components/AdminToggle";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,6 +27,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} antialiased`}
       >
+        <AdminToggle />
         {children}
       </body>
     </html>
