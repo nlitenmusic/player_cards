@@ -51,6 +51,9 @@ export default function PlayerCard({
 
   const rankColor = getTierColor(tierName);
 
+  // canonical player id to use in links (fallbacks for different shapes)
+  const pidForLinks = player?.id ?? player?.playerId ?? player?.player_id ?? '';
+
   function hexToRgb(hex: string) {
     const h = hex.replace("#", "");
     const bigint = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
@@ -322,7 +325,7 @@ export default function PlayerCard({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minHeight: 18, display: 'flex', alignItems: 'center' }}>
             {isAdmin ? (
-            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
+            <a href={`/sessions/view?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
           ) : (
             <div style={{ width: 10 }} />
           )}
@@ -330,7 +333,7 @@ export default function PlayerCard({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {!isAdmin && (
-            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(player?.id ?? player?.playerId ?? ''))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <a href={`/sessions/view?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span>skill breakdown</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />

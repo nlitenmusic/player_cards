@@ -12,7 +12,7 @@ type AddSessionFormHandle = {
   submit: () => Promise<void>;
 };
 
-export default React.forwardRef(function AddSessionForm({ player, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, navSlot }: { player: any; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; navSlot?: React.ReactNode }, ref: React.Ref<AddSessionFormHandle>) {
+export default React.forwardRef(function AddSessionForm({ player, sessionId: sessionIdProp, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, navSlot }: { player: any; sessionId?: string | null; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; navSlot?: React.ReactNode }, ref: React.Ref<AddSessionFormHandle>) {
   const skillLabels = ["Serve", "Return", "Forehand", "Backhand", "Volley", "Overhead", "Movement"];
   const componentKeys: ComponentKey[] = ['c', 'p', 'a', 's', 't'];
   const componentLabels: Record<ComponentKey, string> = {
@@ -206,6 +206,21 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
     }
   };
 
+  // If a selectedSessionId was set before sessionsList finished loading,
+  // watch for sessionsList to become available and then load that session.
+  useEffect(() => {
+    try {
+      if (!sessionsList || !selectedSessionId) return;
+      // if the currently loaded rows do not belong to the selected session, load it
+      const found = sessionsList.find((x:any) => String(x.id) === String(selectedSessionId));
+      if (found) {
+        loadSessionById(selectedSessionId);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [sessionsList, selectedSessionId]);
+
   const loadSessionById = (sessionId: any) => {
     if (!sessionsList) return;
     const s = sessionsList.find((x:any)=>String(x.id) === String(sessionId));
@@ -277,10 +292,40 @@ export default React.forwardRef(function AddSessionForm({ player, onClose, onCre
 
   useEffect(() => {
     if (player && player.id) {
-      loadLatest();
-      loadSessionsList();
+      // If a sessionId prop was provided by the parent, prefer loading that
+      // session rather than the aggregated "latest" stats. This prevents
+      // the UI from always being overwritten by the latest session when the
+      // user intends to view a specific historical session.
+      if (sessionIdProp) {
+        // ensure sessions list is loaded and then load the requested session
+        (async () => {
+          await loadSessionsList();
+          try { loadSessionById(sessionIdProp); } catch (e) {}
+        })();
+      } else {
+        if (!selectedSessionId) {
+          // only load the player's latest aggregated stats when we're not
+          // actively viewing a specific session, to avoid overwriting
+          // a session's rows with the latest stats.
+          loadLatest();
+        }
+        loadSessionsList();
+      }
     }
   }, [player?.id]);
+
+  // Keep internal selectedSessionId in sync when parent provides a sessionId prop
+  useEffect(() => {
+    try {
+      if (!sessionIdProp) return;
+      if (String(selectedSessionId) === String(sessionIdProp)) return;
+      setSelectedSessionId(String(sessionIdProp));
+      // attempt to load the session immediately if sessionsList already available
+      if (sessionsList) {
+        try { loadSessionById(sessionIdProp); } catch (e) {}
+      }
+    } catch (e) {}
+  }, [sessionIdProp]);
 
   function updateCell(skillLabel: string, componentKey: ComponentKey, v: string) {
     setRows((prev) => {
