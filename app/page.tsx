@@ -56,6 +56,7 @@ export default function Home() {
   const [players, setPlayers] = useState<any[] | null>(null);
   const [filtered, setFiltered] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [prefetchedAchievements, setPrefetchedAchievements] = useState<Record<string, any[]> | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -72,7 +73,32 @@ export default function Home() {
           return bVal - aVal;
         });
 
-        if (mounted) setPlayers(playersData);
+        if (mounted) {
+          // prefetch achievements for all loaded players to avoid per-card fetch flicker
+          try {
+            const map: Record<string, any[]> = {};
+            await Promise.all(playersData.map(async (p: any) => {
+              try {
+                const res2 = await fetch(`/api/achievements/player?player_id=${encodeURIComponent(p.id)}`);
+                if (!res2.ok) { map[p.id] = []; return; }
+                const j2 = await res2.json();
+                map[p.id] = j2?.achievements ?? [];
+              } catch (err) {
+                map[p.id] = [];
+              }
+            }));
+            if (mounted) {
+              setPlayers(playersData);
+              setPrefetchedAchievements(map);
+            }
+          } catch (err) {
+            console.error('prefetch achievements failed', err);
+            if (mounted) {
+              setPlayers(playersData);
+              setPrefetchedAchievements({});
+            }
+          }
+        }
       } catch (err) {
         console.error(err);
         if (mounted) {
@@ -129,7 +155,7 @@ export default function Home() {
           <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} variant="admin" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginTop: 12, boxSizing: "border-box", alignItems: "start" }}>
             {(filtered ?? players).map((p: any, i: number) => (
-              <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} />
+              <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} prefetchedAchievements={prefetchedAchievements ?? undefined} />
             ))}
           </div>
         </div>

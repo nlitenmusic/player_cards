@@ -13,6 +13,7 @@ interface PlayerCardProps {
   onAddStats?: (player:any)=>void;
   onEditPlayer?: (player:any)=>void;
   showSessions?: boolean;
+  prefetchedAchievements?: Record<string, any[]>;
 }
 
 export default function PlayerCard({
@@ -23,6 +24,7 @@ export default function PlayerCard({
   onAddStats,
   onEditPlayer,
   showSessions = true,
+  prefetchedAchievements,
 }: PlayerCardProps) {
   const sessionsCount = player.sessions_count ?? (player.sessions || []).length ?? 0;
   const avg = player.avg_rating ?? 0;
@@ -189,6 +191,12 @@ export default function PlayerCard({
     const pid = player?.id ?? player?.playerId ?? null;
     if (!pid) return;
     let cancelled = false;
+    // If parent provided prefetched achievements, use them and skip network fetch
+    const pidKey = String(pid);
+    if (prefetchedAchievements && Object.prototype.hasOwnProperty.call(prefetchedAchievements, pidKey)) {
+      setAchievements(Array.isArray(prefetchedAchievements[pidKey]) ? prefetchedAchievements[pidKey] : []);
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`/api/achievements/player?player_id=${encodeURIComponent(String(pid))}`);
@@ -201,7 +209,7 @@ export default function PlayerCard({
       }
     })();
     return () => { cancelled = true; };
-  }, [player?.id]);
+  }, [player?.id, prefetchedAchievements]);
 
   return (
     <div
