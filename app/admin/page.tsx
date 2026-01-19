@@ -124,15 +124,15 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: 8, paddingTop: 56, paddingBottom: 100 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <h2 style={{ letterSpacing: 0.5, margin: 0 }}>PLAYER CARDS</h2>
-        <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-            <div style={{ width: 260, maxWidth: '50vw' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>PLAYER CARDS</h2>
+
+        <div style={{ width: '100%', maxWidth: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 8 }}>
+          <div style={{ flex: 1, maxWidth: 620 }}>
             <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} variant="admin" />
           </div>
-
-          <div style={{ width: 260, maxWidth: '50vw', display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="add-player-btn" onClick={() => { try { router.push('/admin/players/new'); } catch (e) { window.location.href = '/admin/players/new'; } }} aria-label="Add player" title="Add player" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button className="add-player-btn" onClick={() => { try { router.push('/admin/players/new'); } catch (e) { window.location.href = '/admin/players/new'; } }} aria-label="Add player" title="Add player" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>

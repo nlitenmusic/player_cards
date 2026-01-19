@@ -12,7 +12,7 @@ type AddSessionFormHandle = {
   submit: () => Promise<void>;
 };
 
-export default React.forwardRef(function AddSessionForm({ player, sessionId: sessionIdProp, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, navSlot }: { player: any; sessionId?: string | null; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; navSlot?: React.ReactNode }, ref: React.Ref<AddSessionFormHandle>) {
+export default React.forwardRef(function AddSessionForm({ player, sessionId: sessionIdProp, onClose, onCreated, hideDate, hideNotes, showSaveButton = true, hideDelete = false, navSlot, suppressNoPreviousMessage = false }: { player: any; sessionId?: string | null; onClose?: () => void; onCreated?: () => void; hideDate?: boolean; hideNotes?: boolean; showSaveButton?: boolean; hideDelete?: boolean; navSlot?: React.ReactNode; suppressNoPreviousMessage?: boolean }, ref: React.Ref<AddSessionFormHandle>) {
   const skillLabels = ["Serve", "Return", "Forehand", "Backhand", "Volley", "Overhead", "Movement"];
   const componentKeys: ComponentKey[] = ['c', 'p', 'a', 's', 't'];
   const componentLabels: Record<ComponentKey, string> = {
@@ -184,7 +184,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
         }));
         if (json.notes) setNotes(String(json.notes));
       } else {
-        setError("No previous session stats found for this player");
+        if (!suppressNoPreviousMessage) setError("No previous session stats found for this player");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -742,6 +742,26 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                   </div>
                 );
               })}
+            </div>
+            {/* Quick fill: set a single value for all components of the current skill */}
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <label style={{ fontSize: 12, color: '#6b7280', minWidth: 64 }}>Quick fill</label>
+              <input
+                value={customQuickFill[skillLabels[currentSkillIndex]] ?? ''}
+                onChange={(e) => setCustomQuickFill((p) => ({ ...(p || {}), [skillLabels[currentSkillIndex]]: e.target.value }))}
+                placeholder="e.g. 20"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
+                    if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
+                  }
+                }}
+                style={{ padding: 8, width: 96 }}
+              />
+              <button onClick={() => {
+                const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
+                if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
+              }} style={{ padding: '8px 10px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply</button>
             </div>
           </div>
 

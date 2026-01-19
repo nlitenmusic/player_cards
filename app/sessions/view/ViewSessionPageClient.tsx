@@ -33,6 +33,18 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
     })();
   }, [playerId, initialSessionId]);
 
+  const reloadSessions = async () => {
+    if (!playerId) return;
+    try {
+      const res = await fetch(`/api/admin/player-sessions?player_id=${encodeURIComponent(String(playerId))}`);
+      const j = await res.json();
+      const list = j.sessions || j.data || [];
+      setSessions(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setSessions([]);
+    }
+  };
+
   useEffect(() => {
     if (selectedSessionId) setStep(2);
   }, [selectedSessionId]);
@@ -151,32 +163,37 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
 
           <div style={{ marginTop: 0, flexGrow: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start' }}>
             <div style={{ width: 369 }}>
-            <AddSessionFormAny
-              ref={formRef}
-              player={{ id: playerId }}
-              sessionId={selectedSessionId}
-              hideDate
-              hideNotes
-              hideDelete
-              showSaveButton={false}
-              readOnly={true}
-              navSlot={(
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6 }}>
-                  <div>
-                    <button className="text-btn" onClick={() => setStep(1)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)' }}>Back</button>
+              <AddSessionFormAny
+                ref={formRef}
+                player={{ id: playerId }}
+                sessionId={selectedSessionId}
+                hideDate
+                hideNotes
+                hideDelete={false}
+                showSaveButton={true}
+                navSlot={(
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6 }}>
+                    <div>
+                      <button className="text-btn" onClick={() => setStep(1)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)' }}>Back</button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button className="text-btn" onClick={() => {
+                        try {
+                          const s = formRef.current?.getState?.();
+                          setNotes(s?.notes ?? '');
+                        } catch (e) { setNotes(''); }
+                        setStep(3);
+                      }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Notes</button>
+                      <button className="text-btn" onClick={async () => {
+                        try {
+                          await formRef.current?.submit?.();
+                        } catch (e) { console.error(e); }
+                      }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Save</button>
+                    </div>
                   </div>
-                  <div>
-                    <button className="text-btn" onClick={() => {
-                      try {
-                        const s = formRef.current?.getState?.();
-                        setNotes(s?.notes ?? '');
-                      } catch (e) { setNotes(''); }
-                      setStep(3);
-                    }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Notes</button>
-                  </div>
-                </div>
-              )}
-            />
+                )}
+                onCreated={async () => { await reloadSessions(); setStep(1); }}
+              />
             </div>
           </div>
         </div>
@@ -185,13 +202,40 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
   };
 
   const StepNotes = () => {
+    const [editing, setEditing] = useState<boolean>(false);
+    const [localNotes, setLocalNotes] = useState<string>(notes || '');
+
+    useEffect(() => { setLocalNotes(notes || ''); }, [notes]);
+
+    const saveNotes = async () => {
+      if (!selectedSessionId) return;
+      try {
+        await fetch('/api/admin/update-session-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: selectedSessionId, notes: localNotes }),
+        });
+        setNotes(localNotes);
+        setEditing(false);
+        setStep(2);
+      } catch (e) {
+        console.error('Failed to save notes', e);
+      }
+    };
+
     return (
       <div style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 12, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ transform: 'translateY(48px)', willChange: 'transform' }}>
           <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}>
             <div style={{ width: 320 }}>
               <div style={{ width: 320, height: 22, fontFamily: 'Inter', fontSize: 16, lineHeight: '22px', color: 'var(--foreground)' }}>Notes</div>
-              <div style={{ marginTop: 8, minHeight: 120, padding: 12, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--card-fg)', whiteSpace: 'pre-wrap' }}>{notes || 'No notes for this session.'}</div>
+              <textarea
+                value={localNotes}
+                onChange={(e) => setLocalNotes(e.target.value)}
+                placeholder="Notes (coach comments, background)"
+                style={{ marginTop: 8, minHeight: 120, padding: 12, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--card-fg)', width: '100%', boxSizing: 'border-box', whiteSpace: 'pre-wrap' }}
+                readOnly={!editing}
+              />
             </div>
           </div>
 
@@ -200,7 +244,17 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
               <button className="text-btn" onClick={() => setStep(2)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)' }}>Back</button>
             </div>
             <div>
-              <button className="text-btn" onClick={() => setStep(1)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Done</button>
+              {!editing ? (
+                <>
+                  <button className="text-btn" onClick={() => setEditing(true)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600, marginRight: 8 }}>Edit</button>
+                  <button className="text-btn" onClick={() => setStep(1)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Done</button>
+                </>
+              ) : (
+                <>
+                  <button className="text-btn" onClick={() => { setEditing(false); setLocalNotes(notes || ''); }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)', marginRight: 8 }}>Cancel</button>
+                  <button className="text-btn" onClick={saveNotes} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Save</button>
+                </>
+              )}
             </div>
           </div>
         </div>

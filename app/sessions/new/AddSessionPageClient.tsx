@@ -102,16 +102,31 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
 
   // Step 3: notes page styled per provided CSS (approximate)
   const Step3 = () => {
-  // initialize pageNotes from form state if available
-  useEffect(() => {
-    try { const s = formRef.current?.getState?.(); if (s?.notes) setPageNotes(s.notes); } catch (e) {}
-  }, []);
+    // initialize pageNotes from form state if available when entering Step 3
+    useEffect(() => {
+      if (step !== 3) return;
+      try { const s = formRef.current?.getState?.(); if (s?.notes) setPageNotes(s.notes); } catch (e) {}
+    }, [step]);
+
+    const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
+    const handleContainerClick = () => { try { notesRef.current?.focus(); } catch (e) {} };
+
     return (
-      <div style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div onClick={handleContainerClick} style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: 298 }}>
             <div style={{ width: 298, height: 22, fontFamily: 'Inter', fontSize: 16, lineHeight: '22px', color: 'var(--foreground)' }}>Notes</div>
-            <textarea value={pageNotes} onChange={(e)=>setPageNotes(e.target.value)} style={{ width: 298, minHeight: 120, padding: 12, background: 'var(--card-bg)', borderRadius: 8, border: '1px solid var(--border)', color: 'var(--card-fg)' }} />
+            <textarea
+              ref={notesRef}
+              value={pageNotes}
+              onChange={(e)=>setPageNotes(e.target.value)}
+              tabIndex={0}
+              onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLTextAreaElement).focus(); }}
+              onPointerUp={(e) => { e.stopPropagation(); }}
+              onMouseDown={(e) => { e.stopPropagation(); }}
+              onClick={(e) => { e.stopPropagation(); (e.target as HTMLTextAreaElement).focus(); }}
+              style={{ width: 298, minHeight: 120, padding: 12, background: 'var(--card-bg)', borderRadius: 8, border: '1px solid var(--border)', color: 'var(--card-fg)', position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
+            />
           </div>
         </div>
 
