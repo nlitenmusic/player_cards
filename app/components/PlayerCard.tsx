@@ -333,7 +333,7 @@ export default function PlayerCard({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {!isAdmin && (
-            <a href={`/sessions/view?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span>skill breakdown</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
