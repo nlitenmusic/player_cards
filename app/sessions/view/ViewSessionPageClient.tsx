@@ -177,18 +177,18 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
                       <button className="text-btn" onClick={() => setStep(1)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)' }}>Back</button>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button className="text-btn" onClick={() => {
-                        try {
-                          const s = formRef.current?.getState?.();
-                          setNotes(s?.notes ?? '');
-                        } catch (e) { setNotes(''); }
-                        setStep(3);
-                      }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Notes</button>
-                      <button className="text-btn" onClick={async () => {
-                        try {
-                          await formRef.current?.submit?.();
-                        } catch (e) { console.error(e); }
-                      }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Save</button>
+                        <button className="text-btn" onClick={async () => {
+                          try {
+                            await formRef.current?.submit?.();
+                          } catch (e) { console.error(e); }
+                        }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Save</button>
+                        <button className="text-btn" onClick={() => {
+                          try {
+                            const s = formRef.current?.getState?.();
+                            setNotes(s?.notes ?? '');
+                          } catch (e) { setNotes(''); }
+                          setStep(3);
+                        }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Next</button>
                     </div>
                   </div>
                 )}

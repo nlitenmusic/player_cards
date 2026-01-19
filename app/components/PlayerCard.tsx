@@ -182,12 +182,10 @@ export default function PlayerCard({
     }
   }
 
-  // badges/achievements intentionally disabled for Figma admin view
-  const [hasBadge, setHasBadge] = useState(false);
-  const [badgeIcon, setBadgeIcon] = useState<string | null>(null);
+  // fetch achievements for display on player cards (show all badges under skill cluster)
+  const [achievements, setAchievements] = useState<any[]>([]);
 
   useEffect(() => {
-    // fetch player achievements to determine if badge present
     const pid = player?.id ?? player?.playerId ?? null;
     if (!pid) return;
     let cancelled = false;
@@ -197,15 +195,9 @@ export default function PlayerCard({
         const j = await res.json();
         if (cancelled) return;
         const ach = (j.achievements || []);
-        if (ach && ach.length > 0) {
-          setHasBadge(true);
-          setBadgeIcon(ach[0].icon_url ?? null);
-        } else {
-          setHasBadge(false);
-          setBadgeIcon(null);
-        }
+        setAchievements(Array.isArray(ach) ? ach : []);
       } catch (e) {
-        if (!cancelled) { setHasBadge(false); setBadgeIcon(null); }
+        if (!cancelled) setAchievements([]);
       }
     })();
     return () => { cancelled = true; };
@@ -249,6 +241,7 @@ export default function PlayerCard({
           { (player.last_name && String(player.last_name).trim() !== '') ? (
             <div style={{ fontSize: 10, color: 'var(--card-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.last_name}</div>
           ) : null }
+          {/* achievements rendered below the skill cluster */}
           <div style={{ fontSize: 9, color: 'var(--muted)' }}>{tierName}</div>
 
           <div style={{ marginTop: 6, width: '100%', height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
@@ -320,6 +313,18 @@ export default function PlayerCard({
           </div>
         </div>
       </div>
+
+      {/* Link to achievements screen: display above the skill cluster when player has achievements */}
+      {!isAdmin && achievements && achievements.length > 0 ? (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+          <a href={`/achievements/player/${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span>View achievements</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
+          </a>
+        </div>
+      ) : null}
 
       {/* Footer: left (sessions/admin) and right (skill breakdown + add) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
