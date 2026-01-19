@@ -16,6 +16,7 @@ export default function AchievementsPage() {
   const [items, setItems] = useState<Achievement[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skillFilter, setSkillFilter] = useState<string>('all');
 
   useEffect(() => {
     (async () => {
@@ -58,10 +59,36 @@ export default function AchievementsPage() {
     return a.rule_type || '';
   }
 
+  function extractSkill(a: Achievement) {
+    try {
+      const p = a.rule_payload || {};
+      return (p.skill || p.skill_type || '').toString();
+    } catch (e) { return '' }
+  }
+
   return (
     <div className="achievements-page" style={{ padding: '48px 20px 20px', maxWidth: 980, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
         {!loading && <h1 style={{ margin: 0, textTransform: 'uppercase' }}>ACHIEVEMENTS</h1>}
+        {!loading && items && (
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Build skill list from payloads */}
+            {(() => {
+              const skills = Array.from(new Set((items || []).map(extractSkill).filter(s => !!s)));
+              return (
+                <>
+                  <label style={{ fontSize: 12, color: '#6b7280' }}>Filter:</label>
+                  <select value={skillFilter} onChange={e => setSkillFilter(e.target.value)} style={{ padding: '6px 8px' }}>
+                    <option value="all">All skills</option>
+                    {skills.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+
+                  {/* sort selector removed */}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -81,7 +108,22 @@ export default function AchievementsPage() {
       {error && <div style={{ color: 'crimson' }}>Error: {error}</div>}
 
       {!loading && items && (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        (() => {
+          // apply filter + sort
+          let displayed = (items || []).slice();
+          if (skillFilter && skillFilter !== 'all') {
+            displayed = displayed.filter(i => extractSkill(i) === skillFilter);
+          }
+          // Randomize order so users see a variety on first view
+          for (let i = displayed.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = displayed[i];
+            displayed[i] = displayed[j];
+            displayed[j] = tmp;
+          }
+
+          return (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '2px solid #e6e6e6' }}>
                   <th style={{ padding: '8px 12px' }}>Icon</th>
@@ -89,24 +131,26 @@ export default function AchievementsPage() {
                   <th style={{ padding: '8px 12px', textAlign: 'center' }}>Description</th>
                 </tr>
           </thead>
-          <tbody>
-            {items.map(a => (
-              <tr key={a.id || a.key} style={{ borderBottom: '1px solid #f1f1f1' }}>
-                <td style={{ padding: '10px 12px', width: 80 }}>
-                  <div className="achievement-icon__container" style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: a.icon_url ? 'transparent' : '#efefef', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)', border: '2px solid #000', boxSizing: 'border-box' }}>
-                    {a.icon_url ? (
-                      <img className="achievement-icon__img" src={a.icon_url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    ) : (
-                      <span style={{ fontSize: 20 }}>🏅</span>
-                    )}
-                  </div>
-                </td>
-                <td style={{ padding: '10px 12px', verticalAlign: 'middle', fontWeight: 600, textAlign: 'center' }}>{a.name}</td>
-                <td style={{ padding: '10px 12px', verticalAlign: 'middle', textAlign: 'center' }}>{a.description || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              <tbody>
+                {displayed.map(a => (
+                  <tr key={a.id || a.key} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                    <td style={{ padding: '10px 12px', width: 80 }}>
+                      <div className="achievement-icon__container" style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: a.icon_url ? 'transparent' : '#efefef', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)', border: '2px solid #000', boxSizing: 'border-box' }}>
+                        {a.icon_url ? (
+                          <img className="achievement-icon__img" src={a.icon_url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        ) : (
+                          <span style={{ fontSize: 20 }}>🏅</span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 12px', verticalAlign: 'middle', fontWeight: 600, textAlign: 'center' }}>{a.name}</td>
+                    <td style={{ padding: '10px 12px', verticalAlign: 'middle', textAlign: 'center' }}>{a.description || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        })()
       )}
       <div id="bottomNav" className="bottom-nav" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
         <Link href="/">
