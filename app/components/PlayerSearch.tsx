@@ -33,11 +33,12 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
         // match any token against first, last, or full
         return parts.every((tok) => fullname.includes(tok) || first.includes(tok) || last.includes(tok));
       });
-      const out = tier && tier !== 'All' ? filtered.filter((p)=>getMacroTier(Number(p?.avg_rating ?? 0)).name === tier) : filtered;
+      // When searching by query, always search across all tiers (ignore tier selector)
+      const out = filtered;
       onFiltered(out);
     }, 160);
     return () => { if (timer.current) window.clearTimeout(timer.current); };
-  }, [q, players, onFiltered]);
+  }, [q, players, tier, onFiltered]);
 
   const cls = `player-search${variant === 'admin' ? ' player-search--admin' : ''}`;
 
