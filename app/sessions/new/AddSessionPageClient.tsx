@@ -1,16 +1,19 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AddSessionForm from "../../components/AddSessionForm";
 
 export default function AddSessionPageClient({ playerId }: { playerId?: string | null }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = typeof searchParams?.get === 'function' ? searchParams.get('return_to') : null;
   const formRef = useRef<any>(null);
   const [step, setStep] = useState<number>(1);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [pageDate, setPageDate] = useState<string>(todayLocal());
   const [pageNotes, setPageNotes] = useState<string>('');
+  const [rowsSnapshot, setRowsSnapshot] = useState<any[] | null>(null);
 
   const handleClose = () => {
     try { router.back(); } catch (e) { router.push('/'); }
@@ -57,7 +60,7 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
             <button className="text-btn" onClick={() => { handleClose(); }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)' }}>Back</button>
           </div>
           <div>
-            <button className="text-btn" onClick={() => { try { formRef.current?.setState?.({ date: pageDate }); } catch (e){} setStep(2); }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Next</button>
+                <button className="text-btn" onClick={async () => { try { await formRef.current?.setState?.({ date: pageDate }); const s = await formRef.current?.getState?.(); if (s?.rows) setRowsSnapshot(s.rows); } catch (e){} setStep(2); }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Next</button>
           </div>
         </div>
       </div>
@@ -79,17 +82,23 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
             ref={formRef}
             player={{ id: playerId }}
             onClose={handleClose}
-            onCreated={() => { setStep(1); router.push('/'); }}
+            onCreated={() => {
+              setStep(1);
+              try {
+                if (returnTo) router.push(returnTo);
+                else router.back();
+              } catch (e) { router.push(returnTo || '/'); }
+            }}
             hideDate
             hideNotes
             showSaveButton={false}
             navSlot={(
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6 }}>
                 <div>
                   <button className="text-btn" onClick={() => setStep((s) => Math.max(1, s - 1))} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--card-fg)' }}>Back</button>
                 </div>
                 <div>
-                  <button className="text-btn" onClick={() => setStep(3)} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Next</button>
+                  <button className="text-btn" onClick={async () => { try { const s = await formRef.current?.getState?.(); if (s?.rows) setRowsSnapshot(s.rows); } catch (e) {} setStep(3); }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Next</button>
                 </div>
               </div>
             )}
@@ -102,31 +111,29 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
 
   // Step 3: notes page styled per provided CSS (approximate)
   const Step3 = () => {
-    // initialize pageNotes from form state if available when entering Step 3
-    useEffect(() => {
-      if (step !== 3) return;
-      try { const s = formRef.current?.getState?.(); if (s?.notes) setPageNotes(s.notes); } catch (e) {}
-    }, [step]);
-
     const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
     const handleContainerClick = () => { try { notesRef.current?.focus(); } catch (e) {} };
+    const [saving, setSaving] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [responseBody, setResponseBody] = useState<any | null>(null);
 
     return (
-      <div onClick={handleContainerClick} style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: 298 }}>
             <div style={{ width: 298, height: 22, fontFamily: 'Inter', fontSize: 16, lineHeight: '22px', color: 'var(--foreground)' }}>Notes</div>
             <textarea
               ref={notesRef}
-              value={pageNotes}
-              onChange={(e)=>setPageNotes(e.target.value)}
+              defaultValue={pageNotes}
               tabIndex={0}
-              onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLTextAreaElement).focus(); }}
-              onPointerUp={(e) => { e.stopPropagation(); }}
-              onMouseDown={(e) => { e.stopPropagation(); }}
-              onClick={(e) => { e.stopPropagation(); (e.target as HTMLTextAreaElement).focus(); }}
               style={{ width: 298, minHeight: 120, padding: 12, background: 'var(--card-bg)', borderRadius: 8, border: '1px solid var(--border)', color: 'var(--card-fg)', position: 'relative', zIndex: 9999, pointerEvents: 'auto' }}
             />
+            {statusMessage && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 13, color: saving ? '#6b7280' : '#111' }}>{statusMessage}</div>
+                {responseBody && <pre style={{ marginTop: 6, maxHeight: 160, overflow: 'auto', background: '#f6f6f6', padding: 8 }}>{JSON.stringify(responseBody, null, 2)}</pre>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -137,13 +144,60 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
           </div>
           <div>
             <button className="text-btn" onClick={async () => {
+              setSaving(true);
+              setStatusMessage('Saving...');
+              setResponseBody(null);
               try {
-                await formRef.current?.setState?.({ notes: pageNotes });
-                await formRef.current?.submit?.();
-                setStep(1);
-                router.push('/');
-              } catch (e) {}
-            }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>Save</button>
+                const finalNotes = notesRef.current?.value ?? pageNotes;
+                // prefer getting the full state from the form; fall back to rowsSnapshot captured earlier
+                const s = await formRef.current?.getState?.();
+                const statsComponents = (s && Array.isArray(s.rows) && s.rows.length) ? s.rows : (rowsSnapshot ?? []);
+
+                // client-side validation: server expects exactly 7 rows
+                if (!Array.isArray(statsComponents) || statsComponents.length !== 7) {
+                  setStatusMessage(`Save failed: stats_components must be 7 rows (got ${Array.isArray(statsComponents) ? statsComponents.length : 'none'})`);
+                  setResponseBody({ stats_components: statsComponents });
+                  console.warn('AddSessionPageClient: invalid stats_components', statsComponents);
+                  setSaving(false);
+                  return;
+                }
+
+                const payload = {
+                  player_id: playerId ?? (s?.player?.id ?? null),
+                  session_date: s?.date ?? pageDate,
+                  stats_components: statsComponents,
+                  notes: finalNotes
+                };
+                const isUpdate = !!s?.selectedSessionId;
+                const endpoint = isUpdate ? '/api/admin/update-session' : '/api/admin/create-session';
+                const res = await fetch(endpoint, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(isUpdate ? { session_id: s.selectedSessionId, session_date: payload.session_date, stats_components: payload.stats_components, notes: payload.notes } : payload)
+                });
+                const json = await res.json().catch(() => null);
+                setResponseBody(json ?? { status: res.status });
+                if (!res.ok) {
+                  const msg = json?.error || `Server returned ${res.status}`;
+                  setStatusMessage(`Save failed: ${msg}`);
+                  console.error('AddSessionPageClient: save failed', json || res.status);
+                  setSaving(false);
+                  return;
+                }
+                // success
+                setStatusMessage('Saved successfully.');
+                setTimeout(() => setStatusMessage(null), 3000);
+                try {
+                  setStep(1);
+                  if (returnTo) router.push(returnTo);
+                  else router.back();
+                } catch (e) { router.push(returnTo || '/'); }
+              } catch (e:any) {
+                setStatusMessage(`Save error: ${e?.message ?? String(e)}`);
+                console.error('AddSessionPageClient: save error', e);
+              } finally {
+                setSaving(false);
+              }
+            }} style={{ padding: '4px 8px', background: 'transparent', border: 'none', color: 'var(--accent)', fontWeight: 600 }}>{saving ? 'Saving...' : 'Save'}</button>
           </div>
         </div>
       </div>

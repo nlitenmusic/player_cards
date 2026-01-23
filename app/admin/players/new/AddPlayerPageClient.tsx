@@ -106,18 +106,20 @@ function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setSt
 		try { const s = formRef.current?.getState?.(); if (s && s.notes) setPageNotes(s.notes); } catch (e) {}
 	}, []);
 
+	const notesTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 	const [saving, setSaving] = React.useState(false);
 
 	const handleSave = async () => {
 		setError(null);
 		setSaving(true);
 		try {
+			const finalNotes = notesTextareaRef.current?.value ?? pageNotes;
 			// If the form component is still mounted and exposes submit, prefer using it
 			if (formRef.current?.submit) {
 				if (rowsSnapshot && Array.isArray(rowsSnapshot)) {
 					try { await formRef.current?.setState?.({ rows: rowsSnapshot }); } catch (e) {}
 				}
-				await formRef.current?.setState?.({ notes: pageNotes, date: pageDate });
+				await formRef.current?.setState?.({ notes: finalNotes, date: pageDate });
 				const state = await formRef.current?.getState?.();
 				console.debug('AddPlayerPageClient: submitting form state via formRef', state);
 				const hasAny = Array.isArray(state?.rows) && state.rows.some((r: any) => ['c','p','a','s','t'].some((k) => r[k] != null));
@@ -133,7 +135,7 @@ function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setSt
 				setSaving(false);
 				return;
 			}
-			const payload = { player_id: (formRef.current?.player?.id ?? null), session_date: pageDate, stats_components: rowsSnapshot, notes: pageNotes };
+			const payload = { player_id: (formRef.current?.player?.id ?? null), session_date: pageDate, stats_components: rowsSnapshot, notes: finalNotes };
 			let playerId = (payload as any).player_id || player?.id || (window as any)._currentPlayerId || null;
 			if (!playerId) {
 				// attempt to create the player now using provided names
@@ -153,7 +155,7 @@ function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setSt
 			}
 			const res = await fetch('/api/admin/create-session', {
 				method: 'POST', headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ player_id: playerId, session_date: pageDate, stats_components: rowsSnapshot, notes: pageNotes })
+				body: JSON.stringify({ player_id: playerId, session_date: pageDate, stats_components: rowsSnapshot, notes: finalNotes })
 			});
 			const json = await res.json();
 			if (!res.ok) throw new Error(json?.error || 'Failed to create session');

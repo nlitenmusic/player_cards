@@ -48,7 +48,7 @@ export default function AdminDashboard() {
 
   const handleAddStats = (player: any) => {
     const pid = player?.id ?? player?.playerId ?? '';
-    try { router.push(`/sessions/new?player_id=${encodeURIComponent(String(pid))}`); } catch (e) { window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`; }
+    try { router.push(`/sessions/new?player_id=${encodeURIComponent(String(pid))}&return_to=/admin`); } catch (e) { window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}&return_to=/admin`; }
   };
 
   useEffect(() => {

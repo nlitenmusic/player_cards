@@ -26,6 +26,7 @@ export default function PlayerCard({
   showSessions = true,
   prefetchedAchievements,
 }: PlayerCardProps) {
+  
   const sessionsCount = player.sessions_count ?? (player.sessions || []).length ?? 0;
   const avg = player.avg_rating ?? 0;
   const ratingNum = typeof avg === "number" ? avg : Number(avg) || 0;
@@ -356,18 +357,25 @@ export default function PlayerCard({
 
           {isAdmin && (
             <>
-              <div
-                onClick={() => {
-                  if (typeof onAddStats === 'function') { onAddStats(player); return; }
-                  const pid = player?.id ?? player?.playerId ?? '';
-                  if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}`;
-                }}
-                title="Add session"
-                style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--card-fg)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
-                </svg>
+              <div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Add session"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } }}
+                  onClick={() => {
+                    if (typeof onAddStats === 'function') { onAddStats(player); return; }
+                    const pid = player?.id ?? player?.playerId ?? '';
+                    const suffix = isAdmin ? `&return_to=/admin` : '';
+                    if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}${suffix}`;
+                  }}
+                  title="Add session"
+                  style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--card-fg)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
+                  </svg>
+                </div>
               </div>
             </>
           )}
