@@ -138,17 +138,9 @@ export default function Home() {
   return (
     <div className="flex min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main style={{ paddingTop: 48 }} className="flex min-h-screen w-full flex-col items-start justify-between py-32 px-4 bg-white dark:bg-black">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', width: '100%', textTransform: 'uppercase' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)' }}>Player</div>
-
-          <div style={{ width: 40, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#fff', border: '2px solid #111', boxSizing: 'border-box' }}>
-            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="1" y="2" width="24" height="14" rx="2" stroke="#111" strokeWidth="1.5" fill="none" />
-              <rect x="5" y="6" width="10" height="6" rx="1" stroke="#111" strokeWidth="1" fill="#f7f7f7" />
-            </svg>
-          </div>
-
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)' }}>Cards</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', width: '100%' }}>
+          <img src="/favicon.ico" alt="CourtSense" width={40} height={40} style={{ borderRadius: 8, background: '#fff' }} />
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground)' }}>CourtSense</div>
         </div>
 
         <div style={{ width: "100%", boxSizing: "border-box", padding: 8, paddingTop: 56, paddingBottom: 100 }}>

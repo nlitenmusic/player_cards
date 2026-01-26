@@ -8,6 +8,7 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = typeof searchParams?.get === 'function' ? searchParams.get('return_to') : null;
+  const clinicParam = typeof searchParams?.get === 'function' ? searchParams.get('clinic') : null;
   const formRef = useRef<any>(null);
   const [step, setStep] = useState<number>(1);
   const [playerName, setPlayerName] = useState<string | null>(null);
@@ -33,6 +34,16 @@ export default function AddSessionPageClient({ playerId }: { playerId?: string |
       }
     })();
   }, [playerId]);
+
+  // If opened with ?clinic=1 then jump into the session form and enable clinic mode
+  useEffect(() => {
+    if (!clinicParam) return;
+    try { setStep(2); } catch (e) {}
+    const t = setTimeout(async () => {
+      try { await formRef.current?.setState?.({ isClinic: true }); } catch (e) {}
+    }, 60);
+    return () => clearTimeout(t);
+  }, [clinicParam]);
 
   function todayLocal() {
     const d = new Date();

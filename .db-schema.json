@@ -1,10 +1,16 @@
 {
   "tables": {
     "players": ["id","first_name","last_name","sessions_count","avg_rating","row_averages","created_at","updated_at"],
-    "sessions": ["id","player_id","session_date","notes","created_at"],
+    "sessions": ["id","player_id","session_date","notes","clinic_id","source","finalized_at","finalized_by","created_at","updated_at"],
     "session_stats": ["id","session_id","skill_type","c","p","a","s","t","created_at"],
     "achievements": ["id","key","name","description","icon_url","rule_type","rule_payload","created_at","updated_at"],
     "player_achievements": ["id","player_id","achievement_id","awarded_at","source","metadata"],
     "achievement_award_log": ["id","player_achievement_id","action","actor","details","created_at"]
+    ,"session_attendees": ["id","session_id","player_id","note","created_at"]
+    ,"clinics": ["id","name","date","draft","active","created_at","updated_at"]
+    ,"clinic_players": ["id","clinic_id","player_id","created_at"]
+    ,"clinic_skills": ["id","clinic_id","skill","created_at"]
+    ,"clinic_player_skills": ["id","clinic_id","player_id","skill","component","value","created_at"]
+    ,"clinic_player_notes": ["id","clinic_id","player_id","note","created_at"]
   }
 }

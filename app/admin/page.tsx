@@ -125,7 +125,10 @@ export default function AdminDashboard() {
   return (
     <div style={{ padding: 8, paddingTop: 56, paddingBottom: 100 }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>PLAYER CARDS</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/favicon.ico" alt="CourtSense" width={48} height={48} style={{ borderRadius: 10, border: '2px solid #111', background: '#fff' }} />
+          <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>CourtSense</h2>
+        </div>
 
         <div style={{ width: '100%', maxWidth: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 8 }}>
           <div style={{ flex: 1, maxWidth: 620 }}>
@@ -137,6 +140,9 @@ export default function AdminDashboard() {
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
+            </button>
+            <button className="create-clinic-btn" onClick={() => { try { router.push('/admin/create-clinic'); } catch (e) { window.location.href = '/admin/create-clinic'; } }} aria-label="Create clinic" title="Create clinic" style={{ marginLeft: 8, padding: '8px 10px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>
+              Create Clinic
             </button>
           </div>
         </div>
