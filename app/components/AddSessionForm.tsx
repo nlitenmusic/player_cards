@@ -49,6 +49,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
 
   const showTimeout = useRef<number | null>(null);
   const hideTimeout = useRef<number | null>(null);
+  const inactivityTimeout = useRef<number | null>(null);
   const currentContext = useRef<{ skill: string; component: string; value: number | null } | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const [modalWidth, setModalWidth] = useState<number>(840);
@@ -70,6 +71,10 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
     if (hideTimeout.current) { window.clearTimeout(hideTimeout.current); hideTimeout.current = null; }
   }
 
+  function clearInactivityTimer() {
+    if (inactivityTimeout.current) { window.clearTimeout(inactivityTimeout.current); inactivityTimeout.current = null; }
+  }
+
   function scheduleShow(ctx: { skill: string; component: string; value: number | null }) {
     clearHideTimer();
     clearShowTimer();
@@ -84,6 +89,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   function scheduleHide(delay = 250) {
     clearShowTimer();
     clearHideTimer();
+    clearInactivityTimer();
     hideTimeout.current = window.setTimeout(() => {
       try { console.debug('AddSessionForm: scheduleHide -> clear hoveredBand'); } catch(e){}
       setHoveredBand(null);
@@ -92,10 +98,36 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
     }, delay);
   }
 
-  function handleHover(ctx: { skill: string; component: string; value: number | null } | null) {
-    if (ctx) scheduleShow(ctx);
-    else scheduleHide();
+  function handleHover(ctx: { skill: string; component: string; value: number | null; immediate?: boolean } | null) {
+    if (ctx) {
+      if (ctx.immediate) {
+        // immediate open requested (click) — open now and cancel any hide timer
+        clearHideTimer();
+        clearShowTimer();
+        currentContext.current = { skill: ctx.skill, component: ctx.component, value: ctx.value };
+        try { console.debug('AddSessionForm: immediate open -> setHoveredBand', ctx); } catch (e) {}
+        setHoveredBand({ skill: ctx.skill, component: ctx.component, value: ctx.value });
+        // start/reset inactivity timer (20s)
+        clearInactivityTimer();
+        inactivityTimeout.current = window.setTimeout(() => {
+          try { console.debug('AddSessionForm: inactivity timeout -> clear hoveredBand'); } catch(e){}
+          setHoveredBand(null);
+          currentContext.current = null;
+          inactivityTimeout.current = null;
+        }, 5000);
+      } else {
+        scheduleShow(ctx);
+      }
+    } else scheduleHide();
   }
+
+  useEffect(() => {
+    return () => {
+      clearShowTimer();
+      clearHideTimer();
+      clearInactivityTimer();
+    };
+  }, []);
 
   useEffect(() => {
     try { console.debug('AddSessionForm: hoveredBand changed', hoveredBand); } catch(e){}
