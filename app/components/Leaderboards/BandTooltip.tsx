@@ -22,34 +22,31 @@ export default function BandTooltip({
   const isNumber = Number.isFinite(numeric);
   const bandValue = isNumber ? Math.round(numeric) : null;
 
-  function handleEnter() {
+  function handleClick() {
     try {
-      // debug: emit hover event
-      // console.debug helps confirm the hover payload in browser DevTools
-      try { console.debug('BandTooltip enter', { skill, component, value: bandValue }); } catch(e){}
-      onHover?.({ skill, component, value: bandValue });
-    } catch (e) {
-      // swallow
-    }
-  }
-  function handleLeave() {
-    try {
-      try { console.debug('BandTooltip leave', { skill, component }); } catch(e){}
-      onHover?.(null);
+      try { console.debug('BandTooltip click', { skill, component, value: bandValue }); } catch(e){}
+      // mark as immediate so parents can open without delay
+      onHover?.({ skill, component, value: bandValue, immediate: true } as any);
     } catch (e) {
       // swallow
     }
   }
 
+  function handleKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  }
+
   return (
     <span
-      style={{ position: "relative", display: "inline-block", cursor: "default" }}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-      onFocus={handleEnter}
-      onBlur={handleLeave}
+      style={{ position: "relative", display: "inline-block", cursor: "pointer" }}
+      onClick={handleClick}
+      onKeyDown={handleKey}
+      role="button"
       tabIndex={0}
-      aria-hidden={true}
+      aria-label={typeof children === 'string' ? String(children) : 'Show band info'}
     >
       <span>{children ? children : (isNumber ? String(Math.round(numeric * 100) / 100) : String(value ?? ''))}</span>
     </span>
