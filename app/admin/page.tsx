@@ -126,7 +126,7 @@ export default function AdminDashboard() {
     <div style={{ padding: 8, paddingTop: 56, paddingBottom: 100 }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/favicon.ico" alt="CourtSense" width={48} height={48} style={{ borderRadius: 10, border: '2px solid #111', background: '#fff' }} />
+          <img src="/favicon.ico" alt="CourtSense" width={48} height={48} style={{ borderRadius: 10, background: '#fff' }} />
           <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>CourtSense</h2>
         </div>
 

@@ -42,6 +42,18 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
 
   const cls = `player-search${variant === 'admin' ? ' player-search--admin' : ''}`;
 
+  // derive which macro tiers actually have players so empty tiers aren't shown
+  const presentTierNames = new Set<string>();
+  players.forEach((p) => {
+    try {
+      const t = getMacroTier(Number(p?.avg_rating ?? 0));
+      if (t?.name) presentTierNames.add(t.name);
+    } catch (err) {
+      // ignore
+    }
+  });
+  const visibleMacroTiers = macroTiers.filter((t) => presentTierNames.has(t.name));
+
   return (
     <div className={cls} style={{ marginBottom: 12, width: '100%', paddingTop: 6, paddingBottom: 6 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -61,7 +73,7 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
         <div style={{ width: 160, display: 'flex', alignItems: 'center' }}>
           <select value={tier} onChange={(e)=>setTier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 6, boxSizing: 'border-box' }} aria-label="Filter by tier">
             <option value="All">All tiers</option>
-            {macroTiers.map((t)=> (
+            {visibleMacroTiers.map((t)=> (
               <option key={t.name} value={t.name}>{t.name}</option>
             ))}
           </select>

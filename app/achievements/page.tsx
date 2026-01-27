@@ -164,6 +164,12 @@ export default function AchievementsPage() {
             <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
           </button>
         </Link>
+        <Link href="/leaderboards">
+          <button aria-label="Leaderboards" title="Leaderboards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="currentColor"/></svg>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Leaderboards</div>
+          </button>
+        </Link>
 
         <Link href="/achievements">
           <button aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
