@@ -70,6 +70,7 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
           />
         </div>
 
+        
         <div style={{ width: 160, display: 'flex', alignItems: 'center' }}>
           <select value={tier} onChange={(e)=>setTier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 6, boxSizing: 'border-box' }} aria-label="Filter by tier">
             <option value="All">All tiers</option>

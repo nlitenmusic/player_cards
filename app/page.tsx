@@ -145,6 +145,7 @@ export default function Home() {
 
         <div style={{ width: "100%", boxSizing: "border-box", padding: 8, paddingTop: 56, paddingBottom: 100 }}>
           <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} variant="admin" />
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginTop: 12, boxSizing: "border-box", alignItems: "start" }}>
             {(filtered ?? players).map((p: any, i: number) => (
               <PlayerCard key={p.id} player={p} isTop={i === 0} maxStats={maxStats} showSessions={false} prefetchedAchievements={prefetchedAchievements ?? undefined} />

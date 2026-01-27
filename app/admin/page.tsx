@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import PlayerCard from "../components/PlayerCard";
 import PlayerSearch from "../components/PlayerSearch";
 import AddSessionModal from "../components/AddSessionModal";
@@ -134,16 +135,39 @@ export default function AdminDashboard() {
           <div style={{ flex: 1, maxWidth: 620 }}>
             <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} variant="admin" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <button className="add-player-btn" onClick={() => { try { router.push('/admin/players/new'); } catch (e) { window.location.href = '/admin/players/new'; } }} aria-label="Add player" title="Add player" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
-            <button className="create-clinic-btn" onClick={() => { try { router.push('/admin/create-clinic'); } catch (e) { window.location.href = '/admin/create-clinic'; } }} aria-label="Create clinic" title="Create clinic" style={{ marginLeft: 8, padding: '8px 10px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>
-              Create Clinic
-            </button>
+          
+        </div>
+
+        <div style={{ width: '100%', maxWidth: 900, display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+          <div style={{ flex: 1, maxWidth: 620, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Link href="/admin/players/new" style={{ textDecoration: 'none' }}>
+              <div role="button" aria-label="Add player" title="Add player" style={{ width: 160, minHeight: 112, borderRadius: 8, background: '#fff', border: '1px solid #e5e7eb', boxSizing: 'border-box', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 1px 6px rgba(2,6,23,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 8, background: 'linear-gradient(180deg,#fff,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 0 1px #00000005' }}>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--foreground, #111827)' }}>Add player</div>
+                </div>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>Create a new player card</div>
+              </div>
+            </Link>
+
+            <Link href="/admin/create-clinic" style={{ textDecoration: 'none' }}>
+              <div role="button" aria-label="Create clinic" title="Create clinic" style={{ width: 160, minHeight: 112, borderRadius: 8, background: '#fff', border: '1px solid #e5e7eb', boxSizing: 'border-box', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 1px 6px rgba(2,6,23,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 8, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M3 7h18M3 12h18M3 17h18" stroke="#4f46e5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--foreground, #111827)' }}>Create clinic</div>
+                </div>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>Start a new clinic session</div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

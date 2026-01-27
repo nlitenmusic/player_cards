@@ -46,6 +46,8 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [sessionsList, setSessionsList] = useState<any[] | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [customQuickFill, setCustomQuickFill] = useState<Record<string, string>>({});
+  const [archetypesBySkill, setArchetypesBySkill] = useState<Record<string, any[]> | null>(null);
+  const [selectedArchetypeIndex, setSelectedArchetypeIndex] = useState<number | null>(null);
 
   const showTimeout = useRef<number | null>(null);
   const hideTimeout = useRef<number | null>(null);
@@ -237,6 +239,25 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
       setSessionsList([]);
     }
   };
+
+  // Build archetypes from the loaded sessionsList and include built-in presets
+  async function loadArchetypes() {
+    try {
+      if (!sessionsList) return;
+      // dynamic import of archetypes utility
+      const mod = await import('../utils/archetypes');
+      const generated = (mod.generateArchetypesFromSessions && mod.generateArchetypesFromSessions(sessionsList, skillLabels, componentKeys, 3)) || {};
+      const built = (mod.getBuiltInArchetypes && mod.getBuiltInArchetypes()) || {};
+      const merged: Record<string, any[]> = {};
+      for (const s of skillLabels) merged[s] = [];
+      for (const s of Object.keys(built || {})) merged[s] = (merged[s] || []).concat(built[s] || []);
+      for (const s of Object.keys(generated || {})) merged[s] = (merged[s] || []).concat(generated[s] || []);
+      setArchetypesBySkill(merged);
+    } catch (e) {
+      console.error('loadArchetypes error', e);
+      setArchetypesBySkill({});
+    }
+  }
 
   // If a selectedSessionId was set before sessionsList finished loading,
   // watch for sessionsList to become available and then load that session.
@@ -794,6 +815,41 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                 const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
                 if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
               }} style={{ padding: '8px 10px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply</button>
+              
+            </div>
+            {/* Archetype controls moved below quick-fill for clearer layout */}
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button title="Load archetypes (built-in + generated)" aria-label="Load archetypes" onClick={() => loadArchetypes()} style={{ padding: '8px 12px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 2, background: 'linear-gradient(135deg,#F59E0B,#EF4444)' }} />
+                <span>Archetypes</span>
+              </button>
+              <select value={selectedArchetypeIndex ?? ''} onChange={(e) => setSelectedArchetypeIndex(e.target.value === '' ? null : Number(e.target.value))} style={{ padding: 6 }}>
+                <option value="">— archetype —</option>
+                {(archetypesBySkill?.[skillLabels[currentSkillIndex]] || []).map((a: any, idx: number) => (
+                  <option key={idx} value={idx}>{a.name}</option>
+                ))}
+              </select>
+              <button onClick={() => {
+                const idx = selectedArchetypeIndex;
+                const arr = archetypesBySkill?.[skillLabels[currentSkillIndex]] || [];
+                if (idx == null || idx < 0 || idx >= arr.length) { setError('Select an archetype first'); return; }
+                try {
+                  // dynamic require to avoid SSR issues
+                  // @ts-ignore
+                  const mod = require('../utils/archetypes');
+                  const arche = arr[idx];
+                  // check quick-fill input for the current skill; if provided, scale archetype to overall with bounds
+                  const qRaw = (customQuickFill[skillLabels[currentSkillIndex]] ?? '').toString().trim();
+                  const qv = qRaw === '' ? null : Number(qRaw);
+                  const toUse = (qv != null && !Number.isNaN(qv)) ? (
+                    (mod.scaleArchetypeToOverallWithBounds ? mod.scaleArchetypeToOverallWithBounds(arche, Math.round(qv), skillLabels[currentSkillIndex], 0.3) :
+                    (mod.scaleArchetypeToMatchOverall ? mod.scaleArchetypeToMatchOverall(arche, Math.round(qv), skillLabels[currentSkillIndex]) :
+                    (mod.scaleArchetypeTemplate ? mod.scaleArchetypeTemplate(arche, Math.round(qv), skillLabels[currentSkillIndex]) : arche)))
+                  ) : arche;
+                  const updated = mod.applyArchetypeToRows(rows, skillLabels[currentSkillIndex], toUse);
+                  setRows(updated);
+                } catch (e) { console.error(e); setError('Failed to apply archetype'); }
+              }} style={{ padding: '6px 8px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply archetype</button>
             </div>
           </div>
 
