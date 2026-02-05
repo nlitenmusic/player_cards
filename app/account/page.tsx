@@ -101,6 +101,24 @@ export default function AccountPage() {
     }
   }
 
+  async function cancelClaim(playerId: string | number) {
+    if (!user) return alert('Please sign in');
+    try {
+      const res = await supabase.from('claim_requests').delete().match({ player_id: String(playerId), requester_id: user.id });
+      if (res.error) {
+        console.error('supabase delete error', res.error);
+        alert(res.error.message || JSON.stringify(res.error));
+        return;
+      }
+      setRequestedMap((s) => ({ ...s, [String(playerId)]: false }));
+      // optional: inform the user
+    } catch (err: any) {
+      console.error('unexpected error cancelling claim request', err);
+      const msg = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
+      alert(msg || 'Failed to cancel request');
+    }
+  }
+
   if (!user) return (
     <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div className="card" style={{ maxWidth: 640, width: '100%', padding: 18, borderRadius: 8 }}>
@@ -137,7 +155,7 @@ export default function AccountPage() {
           ) : (
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {approvedPlayers.map((p:any) => (
-                <Link key={p.id} href={`/players/${encodeURIComponent(String(p.id))}`} style={{ textDecoration: 'none' }}>
+                <Link key={p.id} href={`/sessions/breakdown?player_id=${encodeURIComponent(String(p.id))}`} style={{ textDecoration: 'none' }}>
                   <div className="player-card" style={{ padding: 8, borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
                     <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {p.avatar_url ? <img src={p.avatar_url} alt="avatar" style={{ width: 44, height: 44, objectFit: 'cover' }} /> : <div style={{ width: 44, height: 44 }} />}
@@ -169,7 +187,10 @@ export default function AccountPage() {
                     </div>
                     <div>
                       {requestedMap[String(p.id)] ? (
-                        <div style={{ color: '#0a7', fontWeight: 700 }}>Requested</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <div style={{ color: '#0a7', fontWeight: 700 }}>Requested</div>
+                          <button onClick={()=>cancelClaim(p.id)} style={{ padding: '6px 8px', fontSize: 12 }}>Cancel</button>
+                        </div>
                       ) : (
                         <button onClick={()=>requestClaim(p.id)} style={{ padding: '6px 10px' }}>Request claim</button>
                       )}

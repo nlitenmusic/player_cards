@@ -206,7 +206,35 @@ export default function PlayerCard({
         const supaId = user?.id ?? null;
         const playerEmail = (player as any).email ?? null;
         const playerSupaId = (player as any).supabase_user_id ?? null;
-        setIsOwner(!!( (userEmail && playerEmail && userEmail.toLowerCase() === String(playerEmail).toLowerCase()) || (supaId && playerSupaId && supaId === playerSupaId) ));
+
+        // base owner check (email or players.supabase_user_id)
+        let owner = !!(
+          (userEmail && playerEmail && userEmail.toLowerCase() === String(playerEmail).toLowerCase()) ||
+          (supaId && playerSupaId && supaId === playerSupaId)
+        );
+
+        // if not owner yet, check player_access via server endpoint (handles multiple approved users)
+        if (!owner && supaId) {
+          try {
+            const res = await fetch('/api/account/approved', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ requester_id: supaId }),
+            });
+            if (res.ok) {
+              const j = await res.json();
+              const players = j.players || [];
+              const pid = player?.id ?? player?.playerId ?? player?.player_id ?? null;
+              if (pid && Array.isArray(players) && players.find((p: any) => String(p.id) === String(pid))) {
+                owner = true;
+              }
+            }
+          } catch (e) {
+            // ignore endpoint errors; keep owner as computed
+          }
+        }
+
+        setIsOwner(Boolean(owner));
       } catch (e) {
         // ignore
       }

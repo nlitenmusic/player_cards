@@ -20,15 +20,24 @@ export async function POST(req: Request) {
     const playerId = reqRows.player_id;
     const requesterId = reqRows.requester_id;
 
-    // update players record to set supabase_user_id (claim granting)
-    const { error: updatePlayerErr } = await admin.from('players').update({ supabase_user_id: requesterId }).eq('id', playerId);
-    if (updatePlayerErr) return NextResponse.json({ error: updatePlayerErr.message }, { status: 500 });
+    // grant access by inserting into player_access (allows multiple users per player)
+    const upsertObj = { player_id: playerId, user_id: requesterId, granted_by: null };
+    const { data: accessData, error: accessErr } = await admin.from('player_access').upsert([upsertObj], { onConflict: 'player_id,user_id' }).select().limit(1);
+    if (accessErr) return NextResponse.json({ error: accessErr.message }, { status: 500 });
+
+    // If the players.supabase_user_id is empty, set it to this requester (preserve existing owner if present)
+    const { data: playerRow, error: playerFetchErr } = await admin.from('players').select('id, supabase_user_id').eq('id', playerId).limit(1).maybeSingle();
+    if (playerFetchErr) return NextResponse.json({ error: playerFetchErr.message }, { status: 500 });
+    if (playerRow && !playerRow.supabase_user_id) {
+      const { error: updatePlayerErr } = await admin.from('players').update({ supabase_user_id: requesterId }).eq('id', playerId);
+      if (updatePlayerErr) return NextResponse.json({ error: updatePlayerErr.message }, { status: 500 });
+    }
 
     // mark claim request as approved
     const { error: updateReqErr } = await admin.from('claim_requests').update({ status: 'approved' }).eq('id', requestId);
     if (updateReqErr) return NextResponse.json({ error: updateReqErr.message }, { status: 500 });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, access: accessData?.[0] ?? null });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
