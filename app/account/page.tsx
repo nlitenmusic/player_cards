@@ -103,7 +103,7 @@ export default function AccountPage() {
 
   if (!user) return (
     <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ maxWidth: 640, width: '100%', background: '#fff', padding: 18, borderRadius: 8 }}>
+      <div className="card" style={{ maxWidth: 640, width: '100%', padding: 18, borderRadius: 8 }}>
         <h2 style={{ marginTop: 0 }}>Sign in to access your account</h2>
         <p><Link href="/">Return home</Link></p>
       </div>
@@ -111,18 +111,18 @@ export default function AccountPage() {
   );
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="account-container" style={{ padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 980, margin: '0 auto' }}>
         <h2>Account</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ fontSize: 14, color: '#444' }}>{user.email}</div>
+          <div className="muted" style={{ fontSize: 14 }}>{user.email}</div>
           <Link href="/">
             <button type="button" onClick={async ()=>{ await supabase.auth.signOut(); }} style={{ padding: '6px 10px' }}>Sign out</button>
           </Link>
         </div>
       </div>
 
-      <div style={{ maxWidth: 980, margin: '18px auto', background: '#fff', padding: 16, borderRadius: 8 }}>
+      <div className="card" style={{ maxWidth: 980, margin: '18px auto', padding: 16, borderRadius: 8 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search for your player by name or email" style={{ flex: 1, padding: '8px 10px' }} />
           <button onClick={search} disabled={loading} style={{ padding: '8px 12px' }}>{loading ? 'Searching…' : 'Search'}</button>
@@ -131,20 +131,20 @@ export default function AccountPage() {
         <div style={{ marginTop: 16 }}>
           <h3 style={{ margin: '6px 0' }}>Your Approved Players</h3>
           {approvedPlayers === null ? (
-            <div style={{ color: '#666' }}>Loading…</div>
+            <div className="muted">Loading…</div>
           ) : approvedPlayers.length === 0 ? (
-            <div style={{ color: '#666' }}>You don't have any approved players yet.</div>
+            <div className="muted">You don't have any approved players yet.</div>
           ) : (
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {approvedPlayers.map((p:any) => (
                 <Link key={p.id} href={`/players/${encodeURIComponent(String(p.id))}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ padding: 8, border: '1px solid #eee', borderRadius: 8, background: '#fafafa', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="player-card" style={{ padding: 8, borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
                     <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {p.avatar_url ? <img src={p.avatar_url} alt="avatar" style={{ width: 44, height: 44, objectFit: 'cover' }} /> : <div style={{ width: 44, height: 44 }} />}
                     </div>
                     <div>
                       <div style={{ fontWeight: 700 }}>{p.first_name} {p.last_name}</div>
-                      <div style={{ fontSize: 12, color: '#666' }}>{p.email || ''}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{p.email || ''}</div>
                     </div>
                   </div>
                 </Link>
@@ -155,17 +155,17 @@ export default function AccountPage() {
 
         <div style={{ marginTop: 16 }}>
           {results === null ? (
-            <div style={{ color: '#666' }}>No search yet — try entering a name.</div>
+            <div className="muted">No search yet — try entering a name.</div>
           ) : results.length === 0 ? (
-            <div style={{ color: '#666' }}>No players matched your search.</div>
+            <div className="muted">No players matched your search.</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
               {results.map((p:any) => (
-                <div key={p.id} style={{ padding: 10, border: '1px solid #eee', borderRadius: 8, background: '#fafafa' }}>
+                <div key={p.id} className="player-card" style={{ padding: 10, borderRadius: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 700 }}>{p.first_name} {p.last_name}</div>
-                      <div style={{ fontSize: 12, color: '#666' }}>{p.email || ''}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{p.email || ''}</div>
                     </div>
                     <div>
                       {requestedMap[String(p.id)] ? (
@@ -181,6 +181,15 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+      <style jsx>{`
+        .account-container { --bg: #fff; --card-bg: #fff; --panel-bg: #fafafa; --text: #111; --muted: #666; --border: #eee; }
+        .card { background: var(--card-bg); color: var(--text); border-radius: 8px; border: 1px solid var(--border); }
+        .player-card { background: var(--panel-bg); border: 1px solid var(--border); color: var(--text); }
+        .muted { color: var(--muted); }
+        @media (prefers-color-scheme: dark) {
+          .account-container { --bg: #090909; --card-bg: #0f0f10; --panel-bg: #121214; --text: #e6e6e6; --muted: #9aa0a6; --border: #222; }
+        }
+      `}</style>
     </div>
   );
 }
