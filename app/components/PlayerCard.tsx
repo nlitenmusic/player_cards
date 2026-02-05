@@ -1,8 +1,10 @@
-'use client';
+"use client";
 import React, { useEffect, useState } from "react";
 import ProgressBar from "./ProgressBar";
 import { getTierColor, getMacroTier, macroTiers, MICRO } from "../lib/tiers";
 import referenceKey, { normalizeKey } from "../lib/referenceKey";
+import AvatarUpload from "./AvatarUpload";
+import { supabase } from "../lib/supabaseClient";
 // AchievementBadge removed; badges hidden in admin card
 
 interface PlayerCardProps {
@@ -188,6 +190,30 @@ export default function PlayerCard({
   // fetch achievements for display on player cards (show all badges under skill cluster)
   const [achievements, setAchievements] = useState<any[]>([]);
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>((player as any).avatar_url ?? null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user ?? null;
+        if (!mounted) return;
+        setCurrentUser(user);
+        const userEmail = user?.email ?? null;
+        const supaId = user?.id ?? null;
+        const playerEmail = (player as any).email ?? null;
+        const playerSupaId = (player as any).supabase_user_id ?? null;
+        setIsOwner(!!( (userEmail && playerEmail && userEmail.toLowerCase() === String(playerEmail).toLowerCase()) || (supaId && playerSupaId && supaId === playerSupaId) ));
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, [player?.id]);
+
   useEffect(() => {
     const pid = player?.id ?? player?.playerId ?? null;
     if (!pid) return;
@@ -234,14 +260,24 @@ export default function PlayerCard({
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ width: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
-                <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
-              </svg>
-            </div>
+          <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
+                  <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
+                </svg>
+              </div>
+            )}
           </div>
+          {isOwner ? (
+            <div style={{ marginTop: 6 }}>
+              <AvatarUpload playerId={player.id} currentAvatar={avatarUrl} onUploaded={(url)=>setAvatarUrl(url)} />
+            </div>
+          ) : null}
+          {/* claim requests moved to user Account page (no badge on homepage) */}
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{Math.round(ratingNum * 100) / 100}</div>
         </div>
 

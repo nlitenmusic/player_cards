@@ -49,12 +49,11 @@ function round2(n: number) {
 export async function GET(): Promise<NextResponse> {
   try {
     // single safe select: DO NOT attempt to embed staging_player_stats to avoid PostgREST warning
+    // use a permissive select to avoid PostgREST errors if optional columns
+    // (like email or avatar_url) don't exist in some schemas
     const { data, error } = await supabaseServer
       .from("players")
-      .select(
-        `id, first_name, last_name,
-         sessions(id, player_id, session_date, session_stats(c,p,a,s,t,skill_type))`
-      )
+      .select(`*, sessions(id, player_id, session_date, session_stats(c,p,a,s,t,skill_type))`)
       .order("first_name", { ascending: true });
 
     if (error) {
@@ -136,6 +135,9 @@ export async function GET(): Promise<NextResponse> {
         id: p.id,
         first_name: p.first_name ?? "",
         last_name: p.last_name ?? "",
+        email: (p as any).email ?? null,
+        avatar_url: (p as any).avatar_url ?? null,
+        supabase_user_id: (p as any).supabase_user_id ?? null,
         sessions_count: sessions.length,
         avg_rating: playerAvg,
         row_averages: rowAverages,

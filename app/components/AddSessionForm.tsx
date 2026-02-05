@@ -47,7 +47,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [customQuickFill, setCustomQuickFill] = useState<Record<string, string>>({});
   const [archetypesBySkill, setArchetypesBySkill] = useState<Record<string, any[]> | null>(null);
-  const [selectedArchetypeIndex, setSelectedArchetypeIndex] = useState<number | null>(null);
+  const [selectedArchetypeName, setSelectedArchetypeName] = useState<string | null>(null);
 
   const showTimeout = useRef<number | null>(null);
   const hideTimeout = useRef<number | null>(null);
@@ -823,24 +823,37 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                 <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 2, background: 'linear-gradient(135deg,#F59E0B,#EF4444)' }} />
                 <span>Archetypes</span>
               </button>
-              <select value={selectedArchetypeIndex ?? ''} onChange={(e) => setSelectedArchetypeIndex(e.target.value === '' ? null : Number(e.target.value))} style={{ padding: 6 }}>
+              <select value={selectedArchetypeName ?? ''} onChange={(e) => setSelectedArchetypeName(e.target.value === '' ? null : e.target.value)} style={{ padding: 6 }}>
                 <option value="">— archetype —</option>
-                {(archetypesBySkill?.[skillLabels[currentSkillIndex]] || []).map((a: any, idx: number) => (
-                  <option key={idx} value={idx}>{a.name}</option>
+                {(archetypesBySkill?.[skillLabels[currentSkillIndex]] || []).filter((a: any) => (a?.name ?? '') !== 'Archetype 1').map((a: any, idx: number) => (
+                  <option key={idx} value={a.name}>{a.name}</option>
                 ))}
               </select>
               <button onClick={() => {
-                const idx = selectedArchetypeIndex;
+                const sel = selectedArchetypeName;
                 const arr = archetypesBySkill?.[skillLabels[currentSkillIndex]] || [];
-                if (idx == null || idx < 0 || idx >= arr.length) { setError('Select an archetype first'); return; }
+                const arche = sel ? arr.find((x: any) => x?.name === sel) : null;
+                if (!arche) { setError('Select an archetype first'); return; }
                 try {
                   // dynamic require to avoid SSR issues
                   // @ts-ignore
                   const mod = require('../utils/archetypes');
-                  const arche = arr[idx];
-                  // check quick-fill input for the current skill; if provided, scale archetype to overall with bounds
+                  // determine quick-fill value: prefer explicit quick-fill, otherwise use current skill overall
                   const qRaw = (customQuickFill[skillLabels[currentSkillIndex]] ?? '').toString().trim();
-                  const qv = qRaw === '' ? null : Number(qRaw);
+                  let qv: number | null = qRaw === '' ? null : Number(qRaw);
+                  if (qv == null) {
+                    const skillRow: any = skillMap.get(skillLabels[currentSkillIndex]);
+                    if (skillRow) {
+                      const key = normalizeKey(skillLabels[currentSkillIndex]);
+                      if (key === 'movement') {
+                        qv = skillRow.t != null ? Number(skillRow.t) : null;
+                      } else {
+                        const present = ['c','p','a','s','t'].map((k) => skillRow[k]).filter((v) => v != null).map((v) => Number(v));
+                        qv = present.length ? Math.round(present.reduce((a,b) => a + b, 0) / present.length) : null;
+                      }
+                    }
+                  }
+
                   const toUse = (qv != null && !Number.isNaN(qv)) ? (
                     (mod.scaleArchetypeToOverallWithBounds ? mod.scaleArchetypeToOverallWithBounds(arche, Math.round(qv), skillLabels[currentSkillIndex], 0.3) :
                     (mod.scaleArchetypeToMatchOverall ? mod.scaleArchetypeToMatchOverall(arche, Math.round(qv), skillLabels[currentSkillIndex]) :

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import PlayerCard from "./components/PlayerCard";
 import PlayerSearch from "./components/PlayerSearch";
+import AuthForm from "./components/AuthForm";
+import { supabase } from "./lib/supabaseClient";
 import { getTierColor } from "./lib/tiers";
 
 function RatingProgressBar({
@@ -58,6 +60,32 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [prefetchedAchievements, setPrefetchedAchievements] = useState<Record<string, any[]> | null>(null);
 
+  // auth guard state
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!mounted) return;
+        setUser(data?.user ?? null);
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setAuthLoading(false);
+      }
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -111,6 +139,31 @@ export default function Home() {
     return () => { mounted = false; };
   }, []);
 
+  // show auth UI if not signed in
+  if (authLoading) return (
+    <div style={{ position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent' }} aria-hidden>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 84, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: '#fff', border: '2px solid #111', boxSizing: 'border-box' }}>
+          <svg width="56" height="40" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <rect x="1" y="2" width="24" height="14" rx="2" stroke="#111" strokeWidth="1.5" fill="none" />
+            <rect x="5" y="6" width="10" height="6" rx="1" stroke="#111" strokeWidth="1" fill="#f7f7f7" />
+          </svg>
+        </div>
+        <div style={{ width: 12, height: 12, borderRadius: 6, background: '#111', animation: 'pc-blink 900ms infinite' }} />
+      <style>{`@keyframes pc-blink {0% { opacity: 0.15; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.15; transform: scale(0.9); } }`}</style>
+      </div>
+    </div>
+  );
+
+  if (!user) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 720, background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 6px 30px rgba(0,0,0,0.08)' }}>
+        <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>Sign in or create an account to continue</h2>
+        <AuthForm />
+      </div>
+    </div>
+  );
+
   if (error) return <div style={{ padding: 20 }}>Error: {error}</div>;
   if (!players) return (
     <div style={{ position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, zIndex: 99998, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent' }} aria-hidden>
@@ -138,9 +191,26 @@ export default function Home() {
   return (
     <div className="flex min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main style={{ paddingTop: 48 }} className="flex min-h-screen w-full flex-col items-start justify-between py-32 px-4 bg-white dark:bg-black">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', width: '100%' }}>
-          <img src="/favicon.ico" alt="CourtSense" width={40} height={40} style={{ borderRadius: 8, background: '#fff' }} />
-          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground)' }}>CourtSense</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img src="/favicon.ico" alt="CourtSense" width={40} height={40} style={{ borderRadius: 8, background: '#fff' }} />
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground)' }}>CourtSense</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {user ? (
+              <Link href="/account">
+                <button aria-label="Account" title="Account" type="button" style={{ display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                  {user?.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: 18, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{(user.email || '').charAt(0).toUpperCase()}</div>
+                  )}
+                </button>
+              </Link>
+            ) : (
+              <AuthForm />
+            )}
+          </div>
         </div>
 
         <div style={{ width: "100%", boxSizing: "border-box", padding: 8, paddingTop: 56, paddingBottom: 100 }}>
