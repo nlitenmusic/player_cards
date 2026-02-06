@@ -182,6 +182,19 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: 13, color: '#6b7280' }}>Review player claim requests</div>
               </div>
             </Link>
+            <Link href="/admin/coach-requests" style={{ textDecoration: 'none' }}>
+              <div role="button" aria-label="Coach requests" title="Coach requests" style={{ width: 160, minHeight: 112, borderRadius: 8, background: '#fff', border: '1px solid #e5e7eb', boxSizing: 'border-box', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 1px 6px rgba(2,6,23,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 8, background: '#ecfeff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM6 20c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v1H6v-1z" fill="#06b6d4"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--foreground, #111827)' }}>Coach requests</div>
+                </div>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>Review and approve coaching profiles</div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
