@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import PlayerCard from "./components/PlayerCard";
 import PlayerSearch from "./components/PlayerSearch";
-import AuthForm from "./components/AuthForm";
+import ProfileChoice from "./components/ProfileChoice";
 import { supabase } from "./lib/supabaseClient";
 import { getTierColor } from "./lib/tiers";
 
@@ -155,14 +155,7 @@ export default function Home() {
     </div>
   );
 
-  if (!user) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: '100%', maxWidth: 720, background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 6px 30px rgba(0,0,0,0.08)' }}>
-        <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>Sign in or create an account to continue</h2>
-        <AuthForm />
-      </div>
-    </div>
-  );
+  const showAuthModal = !user;
 
   if (error) return <div style={{ padding: 20 }}>Error: {error}</div>;
   if (!players) return (
@@ -208,7 +201,11 @@ export default function Home() {
                 </button>
               </Link>
             ) : (
-              <AuthForm />
+              <Link href="/">
+                <button aria-label="Sign in" title="Sign in" type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid transparent', background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }}>
+                  Sign in
+                </button>
+              </Link>
             )}
           </div>
         </div>
@@ -223,6 +220,18 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {showAuthModal ? (
+        <div aria-hidden={false} style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.36)', backdropFilter: 'blur(4px)' }} />
+          <div style={{ position: 'relative', width: '100%', maxWidth: 720, padding: 24 }}>
+            <div style={{ background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,0.12)' }}>
+              <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>Sign in or create an account to continue</h2>
+              <ProfileChoice />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div id="bottomNav" className="bottom-nav" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
         <Link href="/">

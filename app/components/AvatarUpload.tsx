@@ -18,8 +18,11 @@ export default function AvatarUpload({ playerId, currentAvatar, onUploaded }: { 
       const uid = user.id;
       const filePath = `${uid}/${Date.now()}_${file.name}`;
 
-      const { error: upError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      if (upError) throw upError;
+      const { data: upData, error: upError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+      console.log('storage.upload result', { upData, upError });
+      if (upError) {
+        throw new Error(JSON.stringify(upError));
+      }
 
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const avatarUrl = (urlData as any)?.publicUrl ?? '';
@@ -31,8 +34,14 @@ export default function AvatarUpload({ playerId, currentAvatar, onUploaded }: { 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ player_id: playerId, avatar_url: avatarUrl }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || 'failed to save avatar');
+      // read raw body for non-JSON errors and try to parse
+      const raw = await res.text();
+      let parsed: any = null;
+      try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+      console.log('avatar save response', res.status, { raw, parsed });
+      if (!res.ok) {
+        throw new Error(JSON.stringify({ status: res.status, body: parsed ?? raw }));
+      }
 
       if (typeof onUploaded === 'function') onUploaded(avatarUrl);
     } catch (err: any) {

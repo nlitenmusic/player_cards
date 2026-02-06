@@ -53,6 +53,9 @@ export default function AuthForm() {
     await supabase.auth.signOut();
     setUser(null);
     setMessage('Signed out');
+    if (typeof window !== 'undefined') {
+      window.location.replace(window.location.origin + '/');
+    }
   }
 
   if (user) {

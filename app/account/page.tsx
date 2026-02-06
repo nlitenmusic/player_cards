@@ -134,9 +134,7 @@ export default function AccountPage() {
         <h2>Account</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="muted" style={{ fontSize: 14 }}>{user.email}</div>
-          <Link href="/">
-            <button type="button" onClick={async ()=>{ await supabase.auth.signOut(); }} style={{ padding: '6px 10px' }}>Sign out</button>
-          </Link>
+          <button type="button" onClick={async ()=>{ await supabase.auth.signOut(); if (typeof window !== 'undefined') { window.location.replace(window.location.origin + '/'); } }} style={{ padding: '6px 10px' }}>Sign out</button>
         </div>
       </div>
 
