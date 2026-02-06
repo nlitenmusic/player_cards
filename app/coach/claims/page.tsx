@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function CoachClaimsPage() {
   const [requests, setRequests] = useState<any[] | null>(null);
