@@ -89,6 +89,7 @@ export default function CreateClinicFlow() {
   const [skillsAvailable, setSkillsAvailable] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [playerAdjustments, setPlayerAdjustments] = useState<Record<string, Record<string, Record<string, number | null>>>>({});
+  const [playerOpenMap, setPlayerOpenMap] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<number | null>(null);
@@ -450,7 +451,15 @@ export default function CreateClinicFlow() {
           <h3 style={{ marginTop: 0 }}>Player Adjustments</h3>
           <div style={{ maxHeight: 720, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 8 }}>
             {roster.map(p => (
-              <PlayerSkillAdjustRow key={p.id} player={p} skills={selectedSkills} adjustments={playerAdjustments[p.id] || {}} onChange={(skill, component, val) => setPlayerSkillAdjustment(p.id, skill, component, val)} />
+              <PlayerSkillAdjustRow
+                key={p.id}
+                player={p}
+                skills={selectedSkills}
+                adjustments={playerAdjustments[p.id] || {}}
+                open={Boolean(playerOpenMap[p.id])}
+                toggleOpen={() => setPlayerOpenMap(prev => ({ ...(prev||{}), [p.id]: !prev[p.id] }))}
+                onChange={(skill, component, val) => setPlayerSkillAdjustment(p.id, skill, component, val)}
+              />
             ))}
             {roster.length === 0 && <div style={{ padding: 12, color: '#6b7280' }}>No players added yet.</div>}
           </div>
@@ -584,15 +593,14 @@ function PlayerNoteRow({ player, clinicId }: { player: Player; clinicId?: string
   );
 }
 
-function PlayerSkillAdjustRow({ player, skills, adjustments, onChange }: { player: Player; skills: string[]; adjustments: Record<string, Record<string, number | null>>; onChange: (skill: string, component: string, val: number | null) => void }) {
-  const [open, setOpen] = useState(false);
+function PlayerSkillAdjustRow({ player, skills, adjustments, onChange, open, toggleOpen }: { player: Player; skills: string[]; adjustments: Record<string, Record<string, number | null>>; onChange: (skill: string, component: string, val: number | null) => void; open: boolean; toggleOpen: ()=>void }) {
   const componentKeys: Array<'c'|'p'|'a'|'s'|'t'> = ['c','p','a','s','t'];
   const componentLabels: Record<string,string> = { c: 'Consistency', p: 'Power', a: 'Accuracy', s: 'Spin', t: 'Technique' };
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>{(player.first_name||'') + ' ' + (player.last_name||'')}</div>
-        <button onClick={() => setOpen(o => !o)} style={{ padding: '6px 8px', borderRadius: 6, background: '#eee', border: 'none' }}>{open ? 'Collapse' : 'Adjust'}</button>
+        <button onClick={toggleOpen} style={{ padding: '6px 8px', borderRadius: 6, background: '#eee', border: 'none' }}>{open ? 'Collapse' : 'Adjust'}</button>
       </div>
       {open && (
         <div style={{ marginTop: 8 }}>

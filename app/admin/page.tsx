@@ -177,7 +177,7 @@ export default function AdminDashboard() {
                       <path d="M3 12h18M3 6h18M3 18h18" stroke="#f59e0b" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  <div style={{ fontWeight: 700, color: 'var(--foreground, #111827)' }}>Claims</div>
+                  <div style={{ fontWeight: 700, color: 'var(--foreground, #111827)' }}>Player claims</div>
                 </div>
                 <div style={{ fontSize: 13, color: '#6b7280' }}>Review player claim requests</div>
               </div>
@@ -187,12 +187,12 @@ export default function AdminDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 8, background: '#ecfeff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM6 20c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v1H6v-1z" fill="#06b6d4"/>
+                      <path d="M12 2a4 4 0 100 8 4 4 0 000-8zM4 20v-1a4 4 0 014-4h8a4 4 0 014 4v1" stroke="#06b6d4" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   <div style={{ fontWeight: 700, color: 'var(--foreground, #111827)' }}>Coach requests</div>
                 </div>
-                <div style={{ fontSize: 13, color: '#6b7280' }}>Review and approve coaching profiles</div>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>Review coach access requests</div>
               </div>
             </Link>
           </div>

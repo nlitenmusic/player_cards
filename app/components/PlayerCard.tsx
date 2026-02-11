@@ -102,10 +102,13 @@ export default function PlayerCard({
       const compCandidates = ['consistency', 'technique', 'power', 'accuracy', 'spin'];
       const v = Number(value);
       if (Number.isNaN(v)) return null;
+      // Use integer lookup for band selection so fractional values (e.g. 18.87)
+      // map to the band that contains their floor value (18 -> 13-18)
+      const vLookup = Math.floor(v);
       for (const comp of compCandidates) {
         const bands = (skillEntry as any)[comp];
         if (!bands || !Array.isArray(bands) || bands.length === 0) continue;
-        let bandIdx = bands.findIndex((b: any) => v >= b.min && v <= b.max);
+        let bandIdx = bands.findIndex((b: any) => vLookup >= b.min && vLookup <= b.max);
         // if no exact match, choose the nearest band's midpoint (defensive fallback)
         if (bandIdx === -1) {
           try {
@@ -123,6 +126,7 @@ export default function PlayerCard({
         }
         const band = bands[bandIdx];
         const span = Math.max(1, (band.max - band.min));
+        // Use full-precision v to compute fractional position inside the band
         const frac = Math.max(0, Math.min(1, (v - band.min) / span));
         return computeBandColor(bandIdx, frac);
       }
@@ -193,6 +197,41 @@ export default function PlayerCard({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>((player as any).avatar_url ?? null);
+  const [isFavorited, setIsFavorited] = useState<boolean>(false);
+
+  // favorites stored in localStorage under this key (admin-only client-side)
+  const FAVORITES_KEY = 'pc_admin_favorites_v1';
+
+  useEffect(() => {
+    try {
+      const pid = String(player?.id ?? player?.playerId ?? player?.player_id ?? '');
+      if (!pid) return;
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(FAVORITES_KEY) : null;
+      const favs = raw ? JSON.parse(raw) : [];
+      setIsFavorited(Array.isArray(favs) && favs.includes(pid));
+    } catch (e) {
+      // ignore
+    }
+  }, [player?.id, player?.playerId, player?.player_id]);
+
+  function toggleFavorite() {
+    try {
+      const pid = String(player?.id ?? player?.playerId ?? player?.player_id ?? '');
+      if (!pid) return;
+      const raw = window.localStorage.getItem(FAVORITES_KEY);
+      const favs = raw ? JSON.parse(raw) : [];
+      const set = new Set(Array.isArray(favs) ? favs.map((x:any)=>String(x)) : []);
+      if (set.has(pid)) set.delete(pid);
+      else set.add(pid);
+      const out = Array.from(set);
+      window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(out));
+      setIsFavorited(set.has(pid));
+      // notify other components (PlayerSearch) to recompute filters
+      try { window.dispatchEvent(new Event('pc_favorites_changed')); } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -300,13 +339,23 @@ export default function PlayerCard({
               </div>
             )}
           </div>
+          {/* favorite star for admins */}
+          {isAdmin && (
+            <div style={{ marginTop: 6 }}>
+              <button onClick={toggleFavorite} aria-pressed={isFavorited} title={isFavorited ? 'Unfavorite' : 'Favorite'} style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border)', background: isFavorited ? '#fef3c7' : 'var(--card-bg)', cursor: 'pointer' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isFavorited ? 'gold' : 'none'} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
+              </button>
+            </div>
+          )}
           {isOwner ? (
             <div style={{ marginTop: 6 }}>
               <AvatarUpload playerId={player.id} currentAvatar={avatarUrl} onUploaded={(url)=>setAvatarUrl(url)} />
             </div>
           ) : null}
           {/* claim requests moved to user Account page (no badge on homepage) */}
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{Math.round(ratingNum * 100) / 100}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{(Number.isFinite(ratingNum) ? Number(ratingNum).toFixed(1) : ratingNum)}</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
@@ -332,7 +381,7 @@ export default function PlayerCard({
             {skillLabels.slice(0,2).map((label, idx) => {
               const i = idx;
               const scoreRaw = skillScores[i] ?? 0;
-              const score = Math.round(scoreRaw * 100) / 100;
+              const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
               const heat = getSkillHeatStyle(label, scoreRaw);
               const bg = heat?.background ?? '#efefef';
               const fg = heat?.color ?? '#000';
@@ -351,7 +400,7 @@ export default function PlayerCard({
             {skillLabels.slice(2,5).map((label, idx) => {
               const i = 2 + idx;
               const scoreRaw = skillScores[i] ?? 0;
-              const score = Math.round(scoreRaw * 100) / 100;
+              const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
               const heat = getSkillHeatStyle(label, scoreRaw);
               const bg = heat?.background ?? '#efefef';
               const fg = heat?.color ?? '#000';
@@ -370,7 +419,7 @@ export default function PlayerCard({
             {skillLabels.slice(5,7).map((label, idx) => {
               const i = 5 + idx;
               const scoreRaw = skillScores[i] ?? 0;
-              const score = Math.round(scoreRaw * 100) / 100;
+              const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
               const heat = getSkillHeatStyle(label, scoreRaw);
               const bg = heat?.background ?? '#efefef';
               const fg = heat?.color ?? '#000';

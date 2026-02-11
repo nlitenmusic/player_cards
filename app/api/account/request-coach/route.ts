@@ -12,9 +12,33 @@ export async function POST(req: Request) {
     const { requester_id, requester_email, message } = body
     if (!requester_id) return NextResponse.json({ error: 'missing requester_id' }, { status: 400 })
 
+    // Prevent duplicate pending requests from the same requester
+    const { data: existing, error: e1 } = await supabaseAdmin
+      .from('coach_requests')
+      .select('id, status, created_at')
+      .eq('requester_id', requester_id)
+      .eq('status', 'pending')
+      .limit(1)
+
+    if (e1) return NextResponse.json({ error: e1.message }, { status: 500 })
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ error: 'A pending request already exists for this user' }, { status: 409 })
+    }
+
+    const { first_name, last_name, affiliation } = body;
+
+    const insertPayload: any = {
+      requester_id,
+      requester_email: requester_email || null,
+      message: message || null,
+      first_name: first_name || null,
+      last_name: last_name || null,
+      affiliation: affiliation || null,
+    };
+
     const { data, error } = await supabaseAdmin
       .from('coach_requests')
-      .insert({ requester_id, requester_email: requester_email || null, message: message || null })
+      .insert(insertPayload)
       .select()
 
     if (error) throw error

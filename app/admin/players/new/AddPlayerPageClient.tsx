@@ -64,6 +64,8 @@ function Step2({ formRef, player, setStep, setRowsSnapshot }: Step2Props) {
 				<AddSessionForm
 					ref={formRef}
 					player={player}
+					showQuickFill={true}
+					showArchetypes={true}
 					hideDate
 					hideNotes
 					showSaveButton={false}

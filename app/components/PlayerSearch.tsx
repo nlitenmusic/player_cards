@@ -10,16 +10,40 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
 }) {
   const [q, setQ] = useState("");
   const [tier, setTier] = useState<string>('All');
+  const [favoriteFilter, setFavoriteFilter] = useState<string>('All');
   const timer = useRef<number | null>(null);
+  const FAVORITES_KEY = 'pc_admin_favorites_v1';
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+  const onFilteredRef = useRef(onFiltered);
+
+  // keep a stable ref to the onFiltered prop to avoid changing deps
+  useEffect(() => { onFilteredRef.current = onFiltered; }, [onFiltered]);
+
+  // helper to load favorites set
+  function loadFavoritesSet() {
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(FAVORITES_KEY) : null;
+      const favs = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(favs) ? favs.map((x:any)=>String(x)) : []);
+    } catch (e) {
+      return new Set();
+    }
+  }
 
   useEffect(() => {
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       const raw = String(q || "").trim().toLowerCase();
+      const base = players.slice();
+      const tierFiltered = tier && tier !== 'All' ? base.filter((p)=>getMacroTier(Number(p?.avg_rating ?? 0)).name === tier) : base;
+      // apply favorite filter when no search query
       if (!raw) {
-        const base = players.slice();
-        const out = tier && tier !== 'All' ? base.filter((p)=>getMacroTier(Number(p?.avg_rating ?? 0)).name === tier) : base;
-        onFiltered(out);
+        const favSet = loadFavoritesSet();
+        let out = tierFiltered;
+        if (variant === 'admin' && favoriteFilter === 'Favorited') {
+          out = out.filter((p)=> favSet.has(String(p?.id ?? p?.playerId ?? p?.player_id ?? '')));
+        }
+        onFilteredRef.current(out);
         return;
       }
       const parts = raw.split(/\s+/).filter(Boolean);
@@ -34,11 +58,21 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
         return parts.every((tok) => fullname.includes(tok) || first.includes(tok) || last.includes(tok));
       });
       // When searching by query, always search across all tiers (ignore tier selector)
-      const out = filtered;
-      onFiltered(out);
+      const favSet2 = loadFavoritesSet();
+      const out = (variant === 'admin' && favoriteFilter === 'Favorited') ? filtered.filter((p)=> favSet2.has(String(p?.id ?? p?.playerId ?? p?.player_id ?? ''))) : filtered;
+      onFilteredRef.current(out);
     }, 160);
     return () => { if (timer.current) window.clearTimeout(timer.current); };
-  }, [q, players, tier, onFiltered]);
+  // depend on players.length instead of players to keep the dependency
+  // array size stable and avoid deep object comparisons
+  }, [q, players.length, tier, favoriteFilter, variant, refreshKey]);
+
+  // respond to favorites changed from PlayerCard
+  useEffect(() => {
+    function onFavChange() { setRefreshKey((k)=>k+1); }
+    try { window.addEventListener('pc_favorites_changed', onFavChange); } catch (e) {}
+    return () => { try { window.removeEventListener('pc_favorites_changed', onFavChange); } catch (e) {} };
+  }, []);
 
   const cls = `player-search${variant === 'admin' ? ' player-search--admin' : ''}`;
 
@@ -71,13 +105,19 @@ export default function PlayerSearch({ players, onFiltered, placeholder = 'Searc
         </div>
 
         
-        <div style={{ width: 160, display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: variant === 'admin' ? 320 : 160, display: 'flex', alignItems: 'center', gap: 8 }}>
           <select value={tier} onChange={(e)=>setTier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 6, boxSizing: 'border-box' }} aria-label="Filter by tier">
             <option value="All">All tiers</option>
             {visibleMacroTiers.map((t)=> (
               <option key={t.name} value={t.name}>{t.name}</option>
             ))}
           </select>
+          {variant === 'admin' && (
+            <select value={favoriteFilter} onChange={(e)=>setFavoriteFilter(e.target.value)} style={{ width: 140, padding: '8px', borderRadius: 6, boxSizing: 'border-box' }} aria-label="Filter by favorite">
+              <option value="All">All players</option>
+              <option value="Favorited">Favorited</option>
+            </select>
+          )}
         </div>
       </div>
     </div>
