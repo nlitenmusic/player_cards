@@ -128,14 +128,15 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   // sync activeComponentIndex to the physical scroll position so
   // the overlay prev/next buttons always land on the same targets
   useEffect(() => {
-    const el = componentsCarouselRef.current;
-    if (!el) return;
+    const container = componentsCarouselRef.current;
+    if (!container) return;
     let raf = 0;
     function onScroll() {
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         try {
-          const center = el.scrollLeft + (el.clientWidth / 2);
+          if (!container) return;
+          const center = container.scrollLeft + (container.clientWidth / 2);
           let closest = 0;
           let closestDist = Infinity;
           for (let i = 0; i < (itemRefs.current?.length || 0); i++) {
@@ -149,10 +150,10 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
         } catch (e) {}
       });
     }
-    el.addEventListener('scroll', onScroll, { passive: true });
+    container.addEventListener('scroll', onScroll, { passive: true });
     // run once to sync initial state
     onScroll();
-    return () => { el.removeEventListener('scroll', onScroll as any); if (raf) cancelAnimationFrame(raf); };
+    return () => { container.removeEventListener('scroll', onScroll as any); if (raf) cancelAnimationFrame(raf); };
   }, [componentsCarouselRef.current, componentItemWidth]);
   const [modalWidth, setModalWidth] = useState<number>(840);
   const inputFontSize = modalWidth <= 480 ? 16 : 11;
