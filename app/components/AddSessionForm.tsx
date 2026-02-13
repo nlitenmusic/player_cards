@@ -96,7 +96,8 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   
 
   function goToComponentIndex(idx: number) {
-    const clamped = Math.max(0, Math.min((['c','p','a','s','t'] as ComponentKey[]).length - 1, idx));
+    const maxIndex = Math.max(0, (itemRefs.current?.length || 1) - 1);
+    const clamped = Math.max(0, Math.min(maxIndex, idx));
     setActiveComponentIndex(clamped);
     const node = itemRefs.current[clamped];
     if (node && node.scrollIntoView) {
@@ -863,13 +864,13 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                   .components-carousel::-webkit-scrollbar { display: none; }
                 ` }} />
                 <div ref={componentsCarouselRef} className="components-carousel" style={{ display: 'flex', width: '100%', gap: 12, overflowX: 'auto', paddingBottom: 0, WebkitOverflowScrolling: 'touch' as any, scrollSnapType: 'x mandatory' as any, paddingLeft: 56, paddingRight: 56, boxSizing: 'border-box' as any, scrollPaddingInline: '56px' as any, alignItems: 'flex-start' as any }}>
-                  {(['c','p','a','s','t'] as ComponentKey[]).map((compKey, compIndex) => {
+                  { (['c','p','a','s','t'] as ComponentKey[])
+                    .filter((k) => !(normalizeKey(skillLabels[currentSkillIndex]) === 'movement' && ['c','p','a','s'].includes(k as string)))
+                    .map((compKey, compIndex) => {
                     const ck = compKey as ComponentKey;
                     const skillLabel = skillLabels[currentSkillIndex];
                     const skillRow = skillMap.get(skillLabel);
-                    const keyNorm = normalizeKey(skillLabel);
-                    const isMovement = keyNorm === 'movement';
-                    const hide = isMovement && ['c','p','a','s'].includes(compKey as string);
+                    const isMovement = normalizeKey(skillLabel) === 'movement';
                     const value = skillRow ? skillRow[ck] : null;
                     const heatStyle = getComponentHeatStyle(skillLabel, String(ck), value);
                     return (
@@ -966,10 +967,15 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
             <button aria-label="Next component (outside)" onClick={() => goToComponentIndex(activeComponentIndex + 1)} style={{ position: 'absolute' as any, right: -44, top: '50%', transform: 'translateY(-50%)', zIndex: 30, padding: '6px 8px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 6, cursor: 'pointer' }}>
               <span style={{ fontSize: 16, lineHeight: '1', color: '#111', display: 'inline-block' }}>›</span>
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-              {(['c','p','a','s','t'] as ComponentKey[]).map((_, i) => (
-                <button key={i} aria-label={`Component ${i + 1}`} onClick={() => goToComponentIndex(i)} style={{ width: 8, height: 8, borderRadius: 8, border: 'none', background: i === activeComponentIndex ? '#111' : '#e5e7eb', padding: 0, cursor: 'pointer' }} />
-              ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+              {(() => {
+                const allKeys = (['c','p','a','s','t'] as ComponentKey[]);
+                const keyNorm = normalizeKey(skillLabels[currentSkillIndex]);
+                const visibleCompKeys = allKeys.filter((k) => !(keyNorm === 'movement' && ['c','p','a','s'].includes(k as string)));
+                return visibleCompKeys.map((_, i) => (
+                  <button key={i} aria-label={`Component ${i + 1}`} onClick={() => goToComponentIndex(i)} style={{ width: 8, height: 8, borderRadius: 8, border: 'none', background: i === activeComponentIndex ? '#111' : '#e5e7eb', padding: 0, cursor: 'pointer' }} />
+                ));
+              })()}
             </div>
             {/* Quick fill: show when explicitly requested for new-player flow or when no player id */}
             {(showQuickFill || !player?.id) && (

@@ -401,10 +401,12 @@ export default function PlayerProgressPage({ params }: Props) {
                           <div key={comp} title={bandObj ? `${bandObj.name}: ${bandObj.description || ''}` : ''} style={{ fontSize: 11, paddingTop: 8, paddingRight: 10, paddingBottom: 8, paddingLeft: 10, borderRadius: 6, background: compHeat?.background ?? 'rgba(0,0,0,0.02)', border: chipBorder, color: compHeat?.color ?? '#111', boxSizing: 'border-box' }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 700 }}>{compLabelMap[comp] ?? comp}</div>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                                  <div>{val !== null ? String(val) : '—'}</div>
-                                  {bandObj ? <div style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: compHeat?.background ?? 'rgba(0,0,0,0.04)', color: compHeat?.color ?? '#111' }}>{bandObj.name}</div> : null}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ fontWeight: 700 }}>{compLabelMap[comp] ?? comp}</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {bandObj ? <div style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: compHeat?.background ?? 'rgba(0,0,0,0.04)', color: compHeat?.color ?? '#111' }}>{bandObj.name}</div> : null}
+                                    <div style={{ fontWeight: 800 }}>{val !== null ? String(val) : '—'}</div>
+                                  </div>
                                 </div>
                                 {bandObj && bandObj.description ? (
                                   <div style={{ fontSize: 11, color: '#666', marginTop: 6, overflowWrap: 'anywhere' }}>{bandObj.description}</div>
