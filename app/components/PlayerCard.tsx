@@ -177,6 +177,11 @@ export default function PlayerCard({
     return db.getTime() - da.getTime();
   });
   let directionMap: Record<string, -1|0|1> = {};
+  let deltaMap: Record<string, number | null> = {};
+  // session-based progress estimates (percent within level)
+  let recentLevelProgressPct: number | null = null;
+  let prevLevelProgressPct: number | null = null;
+  let sessionChangePct: number | null = null;
   if (sessions.length >= 2) {
     const recent = computeSessionSkillMap(sessions[0]);
     const prev = computeSessionSkillMap(sessions[1]);
@@ -184,10 +189,32 @@ export default function PlayerCard({
       const key = skillLabels[i].toLowerCase();
       const r = recent[key];
       const p = prev[key];
-      if (r == null || p == null) { directionMap[key]=0; continue; }
-      if (r > p) directionMap[key]=1;
-      else if (r < p) directionMap[key]=-1;
+      if (r == null || p == null) { directionMap[key]=0; deltaMap[key]=null; continue; }
+      const diff = round2(Number(r) - Number(p));
+      deltaMap[key] = diff;
+      if (diff > 0) directionMap[key]=1;
+      else if (diff < 0) directionMap[key]=-1;
       else directionMap[key]=0;
+    }
+    // estimate overall progress pct for the two most recent sessions
+    const recentVals = skillLabels.map((l) => recent[l.toLowerCase()]).filter((n) => typeof n === 'number') as number[];
+    const prevVals = skillLabels.map((l) => prev[l.toLowerCase()]).filter((n) => typeof n === 'number') as number[];
+    let recentOverallEst: number | null = null;
+    let prevOverallEst: number | null = null;
+    if (recentVals.length > 0) recentOverallEst = round2(recentVals.reduce((a,b)=>a+b,0)/recentVals.length);
+    if (prevVals.length > 0) prevOverallEst = round2(prevVals.reduce((a,b)=>a+b,0)/prevVals.length);
+    if (typeof recentOverallEst === 'number') {
+      const lev = Math.floor(Math.max(0, recentOverallEst) / MICRO);
+      const start = lev * MICRO;
+      recentLevelProgressPct = Math.max(0, Math.min(100, ((recentOverallEst - start) / MICRO) * 100));
+    }
+    if (typeof prevOverallEst === 'number') {
+      const lev = Math.floor(Math.max(0, prevOverallEst) / MICRO);
+      const start = lev * MICRO;
+      prevLevelProgressPct = Math.max(0, Math.min(100, ((prevOverallEst - start) / MICRO) * 100));
+    }
+    if (recentLevelProgressPct !== null && prevLevelProgressPct !== null) {
+      sessionChangePct = round2(recentLevelProgressPct - prevLevelProgressPct);
     }
   }
 
@@ -323,39 +350,41 @@ export default function PlayerCard({
         border: '1px solid var(--border)'
       }}
     >
+      {/* admin favorite button placed in the top-right so score aligns with progress */}
+      {isAdmin && (
+        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 6 }}>
+          <button onClick={toggleFavorite} aria-pressed={isFavorited} title={isFavorited ? 'Unfavorite' : 'Favorite'} style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border)', background: isFavorited ? '#fef3c7' : 'var(--card-bg)', cursor: 'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={isFavorited ? 'gold' : 'none'} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+          </button>
+        </div>
+      )}
       {/* overall rating moved below the avatar (see header) */}
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ width: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
           <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="avatar" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
-                  <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
-                </svg>
-              </div>
-            )}
+            <a href={`/player/${pidForLinks}/progress`} aria-label={`View ${player.first_name ?? 'player'} progress`} title="View progress" style={{ display: 'block', width: '100%', height: '100%' }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
+                    <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
+                  </svg>
+                </div>
+              )}
+            </a>
           </div>
-          {/* favorite star for admins */}
-          {isAdmin && (
-            <div style={{ marginTop: 6 }}>
-              <button onClick={toggleFavorite} aria-pressed={isFavorited} title={isFavorited ? 'Unfavorite' : 'Favorite'} style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border)', background: isFavorited ? '#fef3c7' : 'var(--card-bg)', cursor: 'pointer' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={isFavorited ? 'gold' : 'none'} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                </svg>
-              </button>
-            </div>
-          )}
           {isOwner ? (
             <div style={{ marginTop: 6 }}>
               <AvatarUpload playerId={player.id} currentAvatar={avatarUrl} onUploaded={(url)=>setAvatarUrl(url)} />
             </div>
           ) : null}
           {/* claim requests moved to user Account page (no badge on homepage) */}
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{(Number.isFinite(ratingNum) ? Number(ratingNum).toFixed(1) : ratingNum)}</div>
+          <div title="Court Sense Rating" style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{Number.isFinite(ratingNum) ? `${Number(ratingNum).toFixed(1)} CSR` : `${ratingNum} CSR`}</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
@@ -366,8 +395,23 @@ export default function PlayerCard({
           {/* achievements rendered below the skill cluster */}
           <div style={{ fontSize: 9, color: 'var(--muted)' }}>{tierName}</div>
 
-          <div style={{ marginTop: 6, width: '100%', height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.round(levelProgressPct)}%`, height: '100%', background: rankColor }} />
+          <div style={{ marginTop: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }} aria-hidden>
+              <div title={`${Math.max(0, Math.min(100, Math.round(levelProgressPct)))}% towards ${nextMacro.name ?? 'next tier'}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: rankColor, marginRight: 6 }}>{Math.max(0, Math.min(100, Math.round(levelProgressPct)))}%</div>
+                {sessionChangePct !== null ? (
+                  <div style={{ fontSize: 11, fontWeight: 700, color: sessionChangePct > 0 ? '#16a34a' : (sessionChangePct < 0 ? '#dc2626' : '#6b7280') }}>{sessionChangePct > 0 ? `+${sessionChangePct}%` : `${sessionChangePct}%`}</div>
+                ) : null}
+              </div>
+            </div>
+            <div style={{ height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden', position: 'relative' }}>
+              {prevLevelProgressPct !== null && (
+                <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.round(prevLevelProgressPct)}%`, pointerEvents: 'none', transition: 'width 300ms ease' }}>
+                  <div style={{ height: '100%', width: '100%', background: (sessionChangePct !== null && sessionChangePct > 0) ? 'rgba(16,165,130,0.22)' : (sessionChangePct !== null && sessionChangePct < 0) ? 'rgba(239,68,68,0.18)' : 'rgba(0,0,0,0.08)', borderRadius: 4 }} />
+                </div>
+              )}
+              <div style={{ width: `${Math.round(levelProgressPct)}%`, height: '100%', background: rankColor, transition: 'width 300ms ease' }} />
+            </div>
           </div>
         </div>
 
@@ -387,8 +431,24 @@ export default function PlayerCard({
               const fg = heat?.color ?? '#000';
               return (
                 <div key={label} style={{ flex: '0 0 34%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, margin: '0 2%' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
+                    {((directionMap[label.toLowerCase()] ?? 0) !== 0) && (
+                      <div
+                        style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}
+                        title={((deltaMap[label.toLowerCase()] ?? null) !== null) ? `${(deltaMap[label.toLowerCase()]! > 0 ? '+' : '')}${deltaMap[label.toLowerCase()]}` : (directionMap[label.toLowerCase()] === 1 ? 'Up' : 'Down')}
+                      >
+                        {directionMap[label.toLowerCase()] === 1 ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 8l4 4H8l4-4z" fill="#16a34a" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 16l-4-4h8l-4 4z" fill="#dc2626" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>
@@ -406,8 +466,24 @@ export default function PlayerCard({
               const fg = heat?.color ?? '#000';
               return (
                 <div key={label} style={{ flex: '0 0 30%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
+                    {((directionMap[label.toLowerCase()] ?? 0) !== 0) && (
+                      <div
+                        style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}
+                        title={((deltaMap[label.toLowerCase()] ?? null) !== null) ? `${(deltaMap[label.toLowerCase()]! > 0 ? '+' : '')}${deltaMap[label.toLowerCase()]}` : (directionMap[label.toLowerCase()] === 1 ? 'Up' : 'Down')}
+                      >
+                        {directionMap[label.toLowerCase()] === 1 ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 8l4 4H8l4-4z" fill="#16a34a" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 16l-4-4h8l-4 4z" fill="#dc2626" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>
@@ -425,8 +501,24 @@ export default function PlayerCard({
               const fg = heat?.color ?? '#000';
               return (
                 <div key={label} style={{ flex: '0 0 34%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, margin: '0 2%' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
+                    {((directionMap[label.toLowerCase()] ?? 0) !== 0) && (
+                      <div
+                        style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}
+                        title={((deltaMap[label.toLowerCase()] ?? null) !== null) ? `${(deltaMap[label.toLowerCase()]! > 0 ? '+' : '')}${deltaMap[label.toLowerCase()]}` : (directionMap[label.toLowerCase()] === 1 ? 'Up' : 'Down')}
+                      >
+                        {directionMap[label.toLowerCase()] === 1 ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 8l4 4H8l4-4z" fill="#16a34a" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 16l-4-4h8l-4 4z" fill="#dc2626" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>

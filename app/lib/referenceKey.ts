@@ -265,10 +265,13 @@ export function getBand(skill: string, component: string, value: number) {
   const canonicalComp = compMap[comp] || comp;
   const bands = (skillEntry as any)[comp] || (skillEntry as any)[canonicalComp];
   if (!bands || !Array.isArray(bands)) return { name: 'Unknown', description: '' };
-  const v = Number(value);
+  const vRaw = Number(value);
+  const v = Number.isFinite(vRaw) ? vRaw : 0;
+  // Use floored integer value for band matching so decimals map to their integer band
+  const vLookup = Math.floor(Math.max(0, v));
   for (let i = 0; i < bands.length; i++) {
     const b = bands[i];
-    if (v >= b.min && v <= b.max) {
+    if (vLookup >= b.min && vLookup <= b.max) {
       const skillAnchors = (anchors as any)[sk] || (anchors as any)[sk.replace(/\s+/g, '')] || {};
       const compAnchors = skillAnchors[canonicalComp] || skillAnchors[comp] || [];
       const foundAnchors = Array.isArray(compAnchors[i]) ? compAnchors[i] : (b as any).anchors || [];
