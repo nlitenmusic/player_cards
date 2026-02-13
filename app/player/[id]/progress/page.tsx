@@ -361,7 +361,7 @@ export default function PlayerProgressPage({ params }: Props) {
 
           <section style={{ marginBottom: 18 }}>
             <h3 style={{ margin: '0 0 8px 0' }}>Skill summary</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
               {skillLabels.map((label) => {
                 const key = label.toLowerCase();
                 const history = perSkillHistory[key] ?? [];
@@ -370,6 +370,8 @@ export default function PlayerProgressPage({ params }: Props) {
                 const delta = (latest !== null && prev !== null) ? round2((latest as number) - (prev as number)) : null;
                 const band = latest !== null ? getBand(label, 'overall', latest as number) : null;
                 const compsLatest = (perSkillComponentsHistory[key] && perSkillComponentsHistory[key].length) ? perSkillComponentsHistory[key][perSkillComponentsHistory[key].length - 1] : {};
+
+                const compsForSkill = key === 'movement' ? ['t'] : ['c','p','a','s','t'];
 
                 const heat = getSkillHeatStyle(label, latest as number | null);
                 return (
@@ -385,17 +387,10 @@ export default function PlayerProgressPage({ params }: Props) {
                       </div>
                     </div>
 
-                    <div style={{ height: 36, display: 'flex', alignItems: 'end', gap: 4 }}>
-                      {history.length ? (() => {
-                        const maxVal = Math.max(...history, 1);
-                        return history.map((v, i) => (
-                          <div key={i} title={`${v}`} style={{ flex: 1, height: `${Math.round(((v as number) / maxVal) * 100)}%`, background: i === (history.length - 1) ? '#111' : '#e5e7eb', borderRadius: 2, marginRight: i === (history.length - 1) ? 0 : 4 }} />
-                        ));
-                      })() : <div style={{ color: '#666' }}>No data</div>}
-                    </div>
+                    {/* sparkline removed — not needed */}
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                      {['c','p','a','s','t'].map((comp) => {
+                      {compsForSkill.map((comp) => {
                         const val = compsLatest ? (compsLatest[comp] ?? null) : null;
                         const bandObj = (val !== null && val !== undefined) ? getBand(label, comp, Number(val)) : null;
                         const compHeat = getComponentHeatStyle(label, comp, val);
