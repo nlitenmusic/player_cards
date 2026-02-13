@@ -8,6 +8,10 @@ export default function ProfileChoice() {
 	const [msg, setMsg] = useState<string | null>(null);
 	const [err, setErr] = useState<string | null>(null);
 
+	const iosBtnBase: React.CSSProperties = { padding: '10px 14px', border: 'none', borderRadius: 9999, cursor: 'pointer', fontWeight: 600, fontSize: 14, display: 'inline-block', lineHeight: '1' };
+	const iosPrimary: React.CSSProperties = { ...iosBtnBase, background: '#007aff', color: '#fff', boxShadow: '0 6px 20px rgba(0,122,255,0.18)' };
+	const iosSecondary: React.CSSProperties = { ...iosBtnBase, background: '#fff', color: '#007aff', border: '1px solid #e6eefb', boxShadow: '0 1px 3px rgba(2,6,23,0.04)' };
+
 	useEffect(() => {
 		let mounted = true;
 		(async () => {
@@ -73,11 +77,11 @@ export default function ProfileChoice() {
 	if (!user) {
 		return (
 			<div style={{ maxWidth: 520 }}>
-				<h3>Create an account</h3>
 				<p>Choose a role to get started.</p>
+				<br></br>
 				<div style={{ display: 'flex', gap: 8 }}>
-					<button onClick={handlePlayerGoogle} disabled={loading} style={{ padding: '10px 14px' }}>Sign in as Player / Parent (Google)</button>
-					<button onClick={handleCoachGoogle} disabled={loading} style={{ padding: '10px 14px' }}>Sign in as Coach (Google)</button>
+					<button onClick={handlePlayerGoogle} disabled={loading} style={iosPrimary}>Sign in as Player / Parent (Google)</button>
+						<button onClick={handleCoachGoogle} disabled={loading} style={iosSecondary}>Sign in as Coach (Google)</button>
 				</div>
 				<p style={{ marginTop: 10, fontSize: 12, color: '#6b6b6b' }}>You will be redirected through a secure authentication service and returned to {process.env.NEXT_PUBLIC_PRODUCTION_ORIGIN || 'courtsense.net'} after signing in.</p>
 				{msg ? <div style={{ marginTop: 8, color: 'green' }}>{msg}</div> : null}
@@ -91,8 +95,8 @@ export default function ProfileChoice() {
 			<h3>Onboarding</h3>
 			<p>Welcome, {user.email || user.id}. Choose which profile to create:</p>
 			<div style={{ display: 'flex', gap: 8 }}>
-				<button onClick={()=>createProfile('player')} disabled={loading} style={{ padding: '8px 12px' }}>Create Player / Parent Profile</button>
-				<button onClick={()=>createProfile('coach')} disabled={loading} style={{ padding: '8px 12px' }}>Create Coach Profile</button>
+				<button onClick={()=>createProfile('player')} disabled={loading} style={iosPrimary}>Create Player / Parent Profile</button>
+				<button onClick={()=>createProfile('coach')} disabled={loading} style={iosSecondary}>Create Coach Profile</button>
 			</div>
 			{msg ? <div style={{ marginTop: 8, color: 'green' }}>{msg}</div> : null}
 			{err ? <div style={{ marginTop: 8, color: 'red' }}>{err}</div> : null}
