@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { supabase } from '../../../lib/supabaseClient';
 import { getMacroTier, MICRO, macroTiers } from "../../../lib/tiers";
 import referenceKey, { normalizeKey, getBand } from '../../../lib/referenceKey';
 import SkillHistoryChart from '../../../components/SkillHistoryChart';
@@ -108,10 +109,15 @@ export default function PlayerProgressPage({ params }: Props) {
   const [selectedMetric, setSelectedMetric] = useState<string>('overall');
   const [sortMode, setSortMode] = useState<'chronological'|'value_asc'|'value_desc'>('chronological');
   const [openNext, setOpenNext] = useState<Record<string, boolean>>({});
+  const [openSkills, setOpenSkills] = useState<Record<string, boolean>>({});
 
   function toggleNext(key: string, comp: string) {
     const k = `${key}:${comp}`;
     setOpenNext((prev) => ({ ...(prev || {}), [k]: !prev[k] }));
+  }
+
+  function toggleSkillCollapse(key: string) {
+    setOpenSkills((prev) => ({ ...(prev || {}), [key]: !prev[key] }));
   }
 
   useEffect(() => {
@@ -120,24 +126,107 @@ export default function PlayerProgressPage({ params }: Props) {
       setLoading(true);
       setError(null);
       try {
-        // the app exposes a consolidated list endpoint at `/api/players`; fetch and locate by id
+        // try to resolve current authenticated user (if any)
+        let currentUser: any = null;
         try {
-          const res = await fetch('/api/players');
-          if (!res.ok) { setError(`Players endpoint returned ${res.status}`); setPlayer(null); setLoading(false); return; }
-          const body = await res.json();
-          if (cancelled) return;
-          // endpoint returns `{ players: [...] }`
-          const list = (body && body.players) ? body.players : (Array.isArray(body) ? body : []);
-          const found = list.find((pp: any) => String(pp.id) === String(id) || String(pp.player_id) === String(id) || String(pp.id) === String(id).replace(/^player_/, ''));
-          if (!found) { setError('Player not found in /api/players response'); setPlayer(null); setLoading(false); return; }
-          setPlayer(found);
-        } catch (e:any) {
-          if (!cancelled) { setError(String(e?.message ?? e)); setPlayer(null); setLoading(false); }
-          return;
+          const { data } = await supabase.auth.getUser();
+          currentUser = data?.user ?? null;
+        } catch (e) {
+          // ignore auth errors; proceed anonymously
+          currentUser = null;
         }
+
+        // the app exposes a consolidated list endpoint at `/api/players`; fetch and locate the correct player
+        const res = await fetch('/api/players');
+        if (!res.ok) { setError(`Players endpoint returned ${res.status}`); setPlayer(null); setLoading(false); return; }
+        const body = await res.json();
+        if (cancelled) return;
+        const list = (body && body.players) ? body.players : (Array.isArray(body) ? body : []);
+
+        // If `id` is missing or set to "me", try to locate the player record for the authenticated user
+        let found: any = null;
+        if (!id || String(id).toLowerCase() === 'me') {
+          if (currentUser) {
+            const email = currentUser.email ?? null;
+            const supaId = currentUser.id ?? null;
+            found = list.find((pp: any) => (supaId && (pp.supabase_user_id === supaId || pp.supabase_id === supaId || String(pp.supabase_user_id) === String(supaId))) || (email && pp.email && String(pp.email).toLowerCase() === String(email).toLowerCase()));
+            if (!found) {
+              setError('No player profile is associated with your account.');
+              setPlayer(null);
+              setLoading(false);
+              return;
+            }
+          } else {
+            setError('You must be signed in to view your reports.');
+            setPlayer(null);
+            setLoading(false);
+            return;
+          }
+        } else {
+          // locate by provided id
+          found = list.find((pp: any) => String(pp.id) === String(id) || String(pp.player_id) === String(id) || String(pp.id) === String(id).replace(/^player_/, ''));
+          if (!found) { setError('Player not found in /api/players response'); setPlayer(null); setLoading(false); return; }
+
+          // if authenticated user is present and does not match the requested player, deny access (players can only view their own reports)
+          if (currentUser) {
+            const email = currentUser.email ?? null;
+            const supaId = currentUser.id ?? null;
+            const isOwner = !!(
+              (email && found.email && String(found.email).toLowerCase() === String(email).toLowerCase()) ||
+              (supaId && (found.supabase_user_id === supaId || found.supabase_id === supaId || String(found.supabase_user_id) === String(supaId)))
+            );
+
+            // If owner, allow. If not owner, check approved players list for this authenticated user.
+            if (!isOwner) {
+              // allow if profile explicitly public
+              if (found.public_reports === true) {
+                // allowed
+              } else if (supaId) {
+                try {
+                  const apr = await fetch('/api/account/approved', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requester_id: supaId }),
+                  });
+                  if (apr.ok) {
+                    const aprj = await apr.json();
+                    const approvedPlayers = aprj.players || [];
+                    const pid = found?.id ?? found?.player_id ?? null;
+                    const allowed = pid && Array.isArray(approvedPlayers) && approvedPlayers.find((p: any) => String(p.id) === String(pid));
+                    if (!allowed) {
+                      setError('Access denied: you can only view reports for players you have access to.');
+                      setPlayer(null);
+                      setLoading(false);
+                      return;
+                    }
+                  } else {
+                    setError('Access denied: insufficient permissions to view this report.');
+                    setPlayer(null);
+                    setLoading(false);
+                    return;
+                  }
+                } catch (e) {
+                  setError('Access denied: failed to verify permissions.');
+                  setPlayer(null);
+                  setLoading(false);
+                  return;
+                }
+              } else {
+                setError('Access denied: you must be signed in to view reports for this player.');
+                setPlayer(null);
+                setLoading(false);
+                return;
+              }
+            }
+          }
+        }
+
+        if (!cancelled) setPlayer(found);
       } catch (e:any) {
-        setError(String(e?.message ?? e));
-        setPlayer(null);
+        if (!cancelled) {
+          setError(String(e?.message ?? e));
+          setPlayer(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -376,21 +465,27 @@ export default function PlayerProgressPage({ params }: Props) {
                 const heat = getSkillHeatStyle(label, latest as number | null);
                 return (
                   <div key={key} style={{ paddingTop: 10, paddingRight: 10, paddingBottom: 10, paddingLeft: 10, border: '1px solid var(--border)', borderRadius: 8, background: heat?.background ?? 'var(--card-bg)', color: heat?.color ?? '#111' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div>
+                    <div onClick={() => toggleSkillCollapse(key)} role="button" aria-expanded={!!openSkills[key]} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 14 }}>{openSkills[key] ? '▾' : '▸'}</div>
                         <div style={{ fontSize: 13, fontWeight: 700 }}>{label}</div>
-                        {band ? <div title={`${band.name}: ${band.description || ''}`} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: heat?.background ?? 'rgba(0,0,0,0.04)', color: heat?.color ?? '#111', display: 'inline-block', marginTop: 6 }}>{band.name}</div> : null}
                       </div>
-                      <div style={{ textAlign: 'right' }}>
+                      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {band ? (
+                          <div title={`${band.name}: ${band.description || ''}`} style={{ fontSize: 11, padding: '2px 6px', borderRadius: 999, background: heat?.background ?? 'rgba(0,0,0,0.04)', color: heat?.color ?? '#111', display: 'inline-block', marginRight: 6 }}>{band.name}</div>
+                        ) : null}
                         <div style={{ fontWeight: 800, fontSize: 16 }}>{latest !== null ? String(latest) : '—'}</div>
-                        {delta !== null && <div style={{ fontSize: 12, color: delta > 0 ? '#16a34a' : (delta < 0 ? '#dc2626' : '#666') }}>{delta > 0 ? `+${delta}` : `${delta}`}</div>}
+                        {delta !== null && delta !== 0 ? (
+                          <div style={{ fontSize: 12, color: delta > 0 ? '#16a34a' : '#dc2626' }}>{delta > 0 ? `+${delta}` : `${delta}`}</div>
+                        ) : null}
                       </div>
                     </div>
 
                     {/* sparkline removed — not needed */}
 
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                      {compsForSkill.map((comp) => {
+                    {openSkills[key] ? (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                          {compsForSkill.map((comp) => {
                         const val = compsLatest ? (compsLatest[comp] ?? null) : null;
                         const bandObj = (val !== null && val !== undefined) ? getBand(label, comp, Number(val)) : null;
                         const compHeat = getComponentHeatStyle(label, comp, val);
@@ -435,7 +530,8 @@ export default function PlayerProgressPage({ params }: Props) {
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
