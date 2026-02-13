@@ -76,8 +76,6 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
       const gap = 12; // gap between items
       const base = Math.max(280, Math.round(w - overlay));
       setComponentItemWidth(base);
-      // ensure active item is centered after width change
-      setTimeout(() => { if (itemRefs.current[activeComponentIndex]) { try { itemRefs.current[activeComponentIndex]?.scrollIntoView({ behavior: 'smooth', inline: 'center' } as any); } catch (e) {} } }, 50);
     };
     compute();
     let ro: ResizeObserver | null = null;
@@ -169,9 +167,25 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [currentSkillIndex, setCurrentSkillIndex] = useState<number>(0);
 
   useEffect(() => {
-    // reset component index when skill changes
-    setActiveComponentIndex(0);
-    setTimeout(() => { if (itemRefs.current[0]) { try { itemRefs.current[0]?.scrollIntoView({ behavior: 'smooth', inline: 'center' } as any); } catch (e) {} } }, 40);
+    // Preserve the carousel scroll position when switching skills.
+    // If the set of visible components shrinks (e.g. Movement -> only 't'), clamp the active index
+    // but do not change the scrollLeft so the display doesn't jump.
+    const container = componentsCarouselRef.current;
+    let prevScroll: number | null = null;
+    try { prevScroll = container?.scrollLeft ?? null; } catch (e) { prevScroll = null; }
+
+    const allKeys = (['c','p','a','s','t'] as ComponentKey[]);
+    const keyNorm = normalizeKey(skillLabels[currentSkillIndex]);
+    const visibleCompKeys = allKeys.filter((k) => !(keyNorm === 'movement' && ['c','p','a','s'].includes(k as string)));
+    const maxIndex = Math.max(0, visibleCompKeys.length - 1);
+    setActiveComponentIndex((prev) => (prev > maxIndex ? maxIndex : prev));
+
+    if (container && prevScroll != null) {
+      // restore scroll position after DOM updates
+      requestAnimationFrame(() => {
+        try { container.scrollLeft = prevScroll as number; } catch (e) {}
+      });
+    }
   }, [currentSkillIndex]);
 
   function clearShowTimer() {
