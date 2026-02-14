@@ -177,6 +177,12 @@ export default function AchievementsPage() {
             <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
           </button>
         </Link>
+        <Link href="/account">
+          <button aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>A</div>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Account</div>
+          </button>
+        </Link>
       </div>
       <style>{`
         @media (prefers-color-scheme: dark) {

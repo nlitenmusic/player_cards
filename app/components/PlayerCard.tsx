@@ -225,8 +225,10 @@ export default function PlayerCard({
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [isOwnerLoading, setIsOwnerLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>((player as any).avatar_url ?? null);
   const [isFavorited, setIsFavorited] = useState<boolean>(false);
+  const [loadingAction, setLoadingAction] = useState<'report'|'add'|null>(null);
 
   // favorites stored in localStorage under this key (admin-only client-side)
   const FAVORITES_KEY = 'pc_admin_favorites_v1';
@@ -264,6 +266,7 @@ export default function PlayerCard({
 
   useEffect(() => {
     let mounted = true;
+    setIsOwnerLoading(true);
     (async () => {
       try {
         const { data } = await supabase.auth.getUser();
@@ -302,9 +305,11 @@ export default function PlayerCard({
           }
         }
 
-        setIsOwner(Boolean(owner));
+        if (mounted) setIsOwner(Boolean(owner));
       } catch (e) {
         // ignore
+      } finally {
+        if (mounted) setIsOwnerLoading(false);
       }
     })();
     return () => { mounted = false; };
@@ -557,33 +562,63 @@ export default function PlayerCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 8 }}>
           {(isAdmin || isOwner) ? (
             <button
-              onClick={() => { try { window.location.href = `/player/${encodeURIComponent(String(pidForLinks))}/progress`; } catch (e) { window.location.href = `/player/${encodeURIComponent(String(pidForLinks))}/progress`; } }}
+              onClick={() => {
+                setLoadingAction('report');
+                // allow a short tick for React to render the loading state
+                setTimeout(() => {
+                  try {
+                    window.location.href = `/player/${encodeURIComponent(String(pidForLinks))}/progress`;
+                  } catch (e) {
+                    window.location.href = `/player/${encodeURIComponent(String(pidForLinks))}/progress`;
+                  }
+                }, 50);
+                // fallback clear in case navigation doesn't occur immediately
+                setTimeout(() => setLoadingAction(null), 2000);
+              }}
               title="Development Report"
               aria-label="Development Report"
               style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                <rect x="8" y="13" width="2" height="5" fill="currentColor" />
-                <rect x="11" y="10" width="2" height="8" fill="currentColor" />
-                <rect x="14" y="15" width="2" height="3" fill="currentColor" />
-              </svg>
+              {loadingAction === 'report' ? (
+                <svg width="14" height="14" viewBox="0 0 50 50" aria-hidden>
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeDasharray="31.4 31.4">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <rect x="8" y="13" width="2" height="5" fill="currentColor" />
+                  <rect x="11" y="10" width="2" height="8" fill="currentColor" />
+                  <rect x="14" y="15" width="2" height="3" fill="currentColor" />
+                </svg>
+              )}
             </button>
             ) : (
-            !isAdmin && (
-              <button
-                type="button"
-                aria-label="Skill breakdown"
-                title="Skill breakdown"
-                onClick={() => { try { window.location.href = `/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`; } catch (e) { window.location.href = `/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`; } }}
-                style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <rect x="4" y="10" width="3" height="8" rx="0.5" fill="currentColor" />
-                  <rect x="10.5" y="6" width="3" height="12" rx="0.5" fill="currentColor" />
-                  <rect x="17" y="2" width="3" height="16" rx="0.5" fill="currentColor" />
+              isOwnerLoading ? (
+              <div style={{ fontSize: 11, color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid transparent' }}>
+                <svg width="14" height="14" viewBox="0 0 50 50" aria-hidden>
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="31.4 31.4">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
+                  </circle>
                 </svg>
-              </button>
+              </div>
+            ) : (
+              !isAdmin && (
+                <button
+                  type="button"
+                  aria-label="Skill breakdown"
+                  title="Skill breakdown"
+                  onClick={() => { try { window.location.href = `/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`; } catch (e) { window.location.href = `/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`; } }}
+                  style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <rect x="4" y="10" width="3" height="8" rx="0.5" fill="currentColor" />
+                    <rect x="10.5" y="6" width="3" height="12" rx="0.5" fill="currentColor" />
+                    <rect x="17" y="2" width="3" height="16" rx="0.5" fill="currentColor" />
+                  </svg>
+                </button>
+              )
             )
           )}
 
@@ -603,27 +638,55 @@ export default function PlayerCard({
           )}
 
           {/* inline admin add-session control (small plus) */}
-          {(isAdmin || isOwner) && (
+          {(isAdmin || isOwner) ? (
             <button
               type="button"
               aria-label="Add session"
               title="Add session"
               onClick={() => {
-                try {
-                  if (typeof onAddStats === 'function') { onAddStats(player); return; }
-                  const pid = player?.id ?? player?.playerId ?? player?.player_id ?? '';
-                  const suffix = '&return_to=/admin';
-                  if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}${suffix}`;
-                } catch (e) {
-                  // ignore
+                setLoadingAction('add');
+                // give React a small window to render loading affordance before navigation
+                if (typeof onAddStats === 'function') {
+                  setTimeout(() => {
+                    try { onAddStats(player); } catch (e) { /* ignore */ }
+                  }, 50);
+                } else {
+                  setTimeout(() => {
+                    try {
+                      const pid = player?.id ?? player?.playerId ?? player?.player_id ?? '';
+                      const suffix = '&return_to=/admin';
+                      if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}${suffix}`;
+                    } catch (e) {
+                      // ignore
+                    }
+                  }, 50);
                 }
+                setTimeout(() => setLoadingAction(null), 2000);
               }}
               style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--card-fg)', padding: 0 }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
-              </svg>
+              {loadingAction === 'add' ? (
+                <svg width="12" height="12" viewBox="0 0 50 50" aria-hidden>
+                  <circle cx="25" cy="25" r="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="25.12 25.12">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
+                </svg>
+              )}
             </button>
+          ) : (
+            isOwnerLoading ? (
+              <div style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid transparent', color: 'var(--muted)', fontSize: 11 }}>
+                <svg width="16" height="16" viewBox="0 0 50 50" aria-hidden>
+                  <circle cx="25" cy="25" r="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="25.12 25.12">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+              </div>
+            ) : null
           )}
         </div>
       </div>

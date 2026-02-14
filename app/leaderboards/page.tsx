@@ -29,6 +29,11 @@ export default function LeaderboardsPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1-4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
             <div style={{ fontSize: 11, color: 'inherit' }}>Achievements</div>
           </Link>
+
+          <Link href="/account" aria-label="Account" title="Account" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>A</div>
+            <div style={{ fontSize: 11, color: 'inherit' }}>Account</div>
+          </Link>
         </div>
       </div>
     </main>
