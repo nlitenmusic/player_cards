@@ -11,6 +11,7 @@ export default function EditPlayerPage() {
   const [player, setPlayer] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isCoach, setIsCoach] = useState<boolean | null>(null);
   const [isOwner, setIsOwner] = useState<boolean>(false);
 
   useEffect(() => {
@@ -67,6 +68,24 @@ export default function EditPlayerPage() {
       if (!mounted) return;
       setUser(session?.user ?? null);
     });
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const u = data?.user ?? null;
+        if (!mounted) return;
+        if (!u) { setIsCoach(null); return; }
+        try {
+          const res = await fetch('/api/account/is-coach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: u.id }) });
+          const j = await res.json();
+          if (!mounted) return;
+          setIsCoach(Boolean(j?.is_coach));
+        } catch (e) {
+          if (mounted) setIsCoach(false);
+        }
+      } catch (e) {
+        if (mounted) setIsCoach(false);
+      }
+    })();
     return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
   }, []);
 
@@ -77,7 +96,6 @@ export default function EditPlayerPage() {
   return (
     <div style={{ padding: 24 }}>
       <div className="ios-card" style={{ maxWidth: 720, margin: '0 auto' }}>
-        <h2 style={{ marginTop: 0 }}>Edit player: {player.first_name} {player.last_name}</h2>
         <br></br>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
           <div style={{ width: 72, height: 72, borderRadius: 8, overflow: 'hidden', background: '#eee' }}>
@@ -91,7 +109,11 @@ export default function EditPlayerPage() {
 
         <div style={{ marginTop: 8 }}>
           <h3 style={{ margin: '6px 0' }}>Profile picture</h3>
-          <AvatarUpload playerId={player.id} currentAvatar={player.avatar_url} onUploaded={(url)=>{ setPlayer((p:any)=> ({ ...p, avatar_url: url })); }} />
+          {isCoach ? (
+            <div style={{ fontSize: 13, color: '#666' }}>Coaches cannot edit player photos from their account. Players or parents may update this in their profile.</div>
+          ) : (
+            <AvatarUpload playerId={player.id} currentAvatar={player.avatar_url} onUploaded={(url)=>{ setPlayer((p:any)=> ({ ...p, avatar_url: url })); }} />
+          )}
         </div>
 
         <div style={{ marginTop: 18 }}>
@@ -125,16 +147,27 @@ export default function EditPlayerPage() {
           </button>
         </a>
         
-        <a href="/account" style={{ textDecoration: 'none' }}>
-          <button aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{user ? ((user.email||'').charAt(0).toUpperCase()) : 'A'}</div>
-            )}
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>Account</div>
+        {isCoach ? (
+          <button aria-label="Sign out" title="Sign out" type="button" onClick={async () => {
+            try { document.cookie = 'pc_coach_authed=; Path=/; Max-Age=0'; } catch (e) {}
+            try { await supabase.auth.signOut(); } catch (e) {}
+            try { router.push('/'); } catch (e) { window.location.href = '/'; }
+          }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>⎋</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>Sign out</div>
           </button>
-        </a>
+        ) : (
+          <a href="/account" style={{ textDecoration: 'none' }}>
+            <button aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{user ? ((user.email||'').charAt(0).toUpperCase()) : 'A'}</div>
+              )}
+              <div style={{ fontSize: 11, color: 'var(--muted)' }}>Account</div>
+            </button>
+          </a>
+        )}
       </div>
       {isOwner && (
         <div style={{ position: 'fixed', right: 18, bottom: 86, zIndex: 10001 }}>

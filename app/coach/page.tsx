@@ -15,6 +15,7 @@ export default function CoachDashboard() {
   const [viewMode, setViewMode] = useState<'all' | 'accessible'>('all');
   const [user, setUser] = useState<any>(null);
   const [isCoach, setIsCoach] = useState<boolean | null>(null);
+  const [checkedAuth, setCheckedAuth] = useState(false);
 
   const router = useRouter();
 
@@ -24,11 +25,23 @@ export default function CoachDashboard() {
       try {
         const { data } = await supabase.auth.getUser();
         if (!mounted) return;
-        setUser(data?.user ?? null);
+        const u = data?.user ?? null;
+        setUser(u);
+        if (!u) {
+          try { router.replace('/'); } catch (e) { try { window.location.replace(window.location.origin + '/'); } catch (err) {} }
+          return;
+        }
+        setCheckedAuth(true);
       } catch (e) {}
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (!u) {
+        try { router.replace('/'); } catch (e) { try { window.location.replace(window.location.origin + '/'); } catch (err) {} }
+      } else {
+        setCheckedAuth(true);
+      }
     });
     return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
   }, []);
@@ -97,14 +110,9 @@ export default function CoachDashboard() {
     }
   }, [isCoach]);
 
-  if (!user) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: '100%', maxWidth: 720, background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 6px 30px rgba(0,0,0,0.08)' }}>
-        <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>Sign in as a coach to continue</h2>
-        <Link href="/">Go to onboarding</Link>
-      </div>
-    </div>
-  );
+  // avoid rendering the interim sign-in card while auth is resolving
+  if (!checkedAuth) return null;
+  if (!user) return null;
 
   // If user is signed in but isn't a coach yet, show request-access options
   if (user && isCoach === false) return (

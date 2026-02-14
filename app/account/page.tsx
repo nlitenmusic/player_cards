@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
 
@@ -10,17 +11,73 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(false);
   const [requestedMap, setRequestedMap] = useState<Record<string, boolean>>({});
   const [approvedPlayers, setApprovedPlayers] = useState<any[] | null>(null);
+  const [isCoach, setIsCoach] = useState<boolean | null>(null);
+  const [checkedAuth, setCheckedAuth] = useState(false);
+  const router = useRouter();
+
+  // If we just signed out (flag set), redirect immediately to profile choice to avoid rendering the sign-in card
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const f = window.sessionStorage.getItem('pc_signed_out');
+        if (f) {
+          try { window.sessionStorage.removeItem('pc_signed_out'); } catch (e) {}
+          try { router.replace('/'); } catch (e) { window.location.replace(window.location.origin + '/'); }
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   useEffect(() => {
     let mounted = true;
+
+    // initial auth check + subscribe to changes. If unauthenticated, redirect immediately
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!mounted) return;
-      setUser(data?.user ?? null);
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!mounted) return;
+        const u = data?.user ?? null;
+        setUser(u);
+        if (!u) {
+          try { router.replace('/'); } catch (e) { try { window.location.replace(window.location.origin + '/'); } catch (err) {} }
+          return;
+        }
+        setCheckedAuth(true);
+      } catch (e) {
+        try { router.replace('/'); } catch (err) { try { window.location.replace(window.location.origin + '/'); } catch (err2) {} }
+        return;
+      }
     })();
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (!u) {
+        try { router.replace('/'); } catch (e) { try { window.location.replace(window.location.origin + '/'); } catch (err) {} }
+      } else {
+        setCheckedAuth(true);
+      }
     });
+
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const u = data?.user ?? null;
+        if (!mounted) return;
+        if (!u) { setIsCoach(null); return; }
+        try {
+          const res = await fetch('/api/account/is-coach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: u.id }) });
+          const j = await res.json();
+          if (!mounted) return;
+          setIsCoach(Boolean(j?.is_coach));
+        } catch (e) {
+          if (mounted) setIsCoach(false);
+        }
+      } catch (e) {
+        if (mounted) setIsCoach(false);
+      }
+    })();
+
     return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
   }, []);
 
@@ -119,14 +176,9 @@ export default function AccountPage() {
     }
   }
 
-  if (!user) return (
-    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div className="card" style={{ maxWidth: 640, width: '100%', padding: 18, borderRadius: 8 }}>
-        <h2 style={{ marginTop: 0 }}>Sign in to access your account</h2>
-        <p><Link href="/">Return home</Link></p>
-      </div>
-    </div>
-  );
+  // While we check auth, render nothing to avoid any flash of the "Sign in" card.
+  if (!checkedAuth) return null;
+  if (!user) return null;
 
   return (
     <div className="account-container" style={{ padding: 24 }}>
@@ -142,7 +194,23 @@ export default function AccountPage() {
             <div className="muted" style={{ fontSize: 14 }}>{user.email}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="ios-btn small" onClick={async ()=>{ await supabase.auth.signOut(); if (typeof window !== 'undefined') { window.location.replace(window.location.origin + '/'); } }}>Sign out</button>
+            <button
+              type="button"
+              className="ios-btn small"
+              onClick={async ()=>{
+                try {
+                  if (typeof window !== 'undefined') {
+                    try { window.sessionStorage.setItem('pc_signed_out', '1'); } catch (e) {}
+                  }
+                  if (isCoach) { try { document.cookie = 'pc_coach_authed=; Path=/; Max-Age=0'; } catch (e) {} }
+                  // fire-and-forget signOut, then navigate immediately to avoid interim rendering
+                  supabase.auth.signOut().catch(()=>{});
+                  try { window.location.replace(window.location.origin + '/'); } catch (err) { try { router.replace('/'); } catch (e) {} }
+                } catch (e) {
+                  try { window.location.replace(window.location.origin + '/'); } catch (err) {}
+                }
+              }}
+            >Sign out</button>
           </div>
         </div>
       </div>
