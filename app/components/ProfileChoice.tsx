@@ -29,7 +29,7 @@ export default function ProfileChoice() {
 		return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
 	}, []);
 
-	// If the user returned to the /coach path after OAuth, automatically create a coach profile
+	// If the user returned after OAuth, automatically create a profile when appropriate
 	const [autoCreated, setAutoCreated] = useState(false);
 
 	useEffect(() => {
@@ -38,9 +38,17 @@ export default function ProfileChoice() {
 		if (typeof window === 'undefined') return;
 		try {
 			const path = window.location.pathname || '';
+			const params = new URLSearchParams(window.location.search || '');
+			// auto-create coach when returning to /coach
 			if (path.startsWith('/coach')) {
 				setAutoCreated(true);
 				createProfile('coach', { silent: true }).catch(()=>{/* ignore */});
+				return;
+			}
+			// auto-create player when OAuth returned with createProfile=player
+			if (params.get('createProfile') === 'player') {
+				setAutoCreated(true);
+				createProfile('player', { silent: true }).catch(()=>{/* ignore */});
 			}
 		} catch (e) {
 			// ignore
@@ -51,8 +59,9 @@ export default function ProfileChoice() {
 		setErr(null); setMsg(null); setLoading(true);
 		try {
 		const prodOrigin = process.env.NEXT_PUBLIC_PRODUCTION_ORIGIN || 'https://www.courtsense.net';
+		// include a flag so we can auto-create a player profile after OAuth returns
 		const redirectTo = typeof window !== 'undefined'
-			? (process.env.NODE_ENV === 'development' ? window.location.origin + '/' : prodOrigin + '/')
+			? (process.env.NODE_ENV === 'development' ? window.location.origin + '/?createProfile=player' : prodOrigin + '/?createProfile=player')
 			: undefined;
 		await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
 			setMsg('Redirecting to Google for sign-in...');

@@ -12,6 +12,7 @@ export default function AccountPage() {
   const [requestedMap, setRequestedMap] = useState<Record<string, boolean>>({});
   const [approvedPlayers, setApprovedPlayers] = useState<any[] | null>(null);
   const [isCoach, setIsCoach] = useState<boolean | null>(null);
+  const [hasPlayerRole, setHasPlayerRole] = useState<boolean | null>(null);
   const [checkedAuth, setCheckedAuth] = useState(false);
   const router = useRouter();
 
@@ -120,6 +121,20 @@ export default function AccountPage() {
     return () => { mounted = false; };
   }, [user]);
 
+  // detect player role: explicit `pc_role=player` cookie or any approved players (parent account)
+  useEffect(() => {
+    try {
+      if (!user) { setHasPlayerRole(null); return; }
+      const cookieHas = typeof document !== 'undefined' && document.cookie.includes('pc_role=player');
+      if (cookieHas) { setHasPlayerRole(true); return; }
+      // fallback: if approvedPlayers already loaded and non-empty, treat as player
+      if (approvedPlayers && approvedPlayers.length > 0) { setHasPlayerRole(true); return; }
+      setHasPlayerRole(false);
+    } catch (e) {
+      setHasPlayerRole(false);
+    }
+  }, [user, approvedPlayers]);
+
   async function search() {
     setLoading(true);
     try {
@@ -194,6 +209,15 @@ export default function AccountPage() {
             <div className="muted" style={{ fontSize: 14 }}>{user.email}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {/* Role badges */}
+              {isCoach ? (
+                <div style={{ padding: '6px 8px', background: '#111827', color: '#fff', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>Coach</div>
+              ) : null}
+              {hasPlayerRole ? (
+                <div style={{ padding: '6px 8px', background: '#e6f4ff', color: '#0b69ff', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>Player</div>
+              ) : null}
+            </div>
             <button
               type="button"
               className="ios-btn small"
