@@ -688,7 +688,7 @@ export default function PlayerProgressPage({ params }: Props) {
             <div style={{ color: '#666' }}>No sessions available.</div>
           ) : sessions.map((s:any, idx:number) => {
             const note = getSessionNote(s);
-            const dateLabel = s.session_date ? (new Date(s.session_date)).toLocaleString() : (s.date ? (new Date(s.date)).toLocaleString() : `Session ${idx+1}`);
+            const dateLabel = s.session_date ? (new Date(s.session_date)).toLocaleDateString() : (s.date ? (new Date(s.date)).toLocaleDateString() : `Session ${idx+1}`);
             return (
               <div key={s.id ?? idx} style={{ padding: 10, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card-bg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>

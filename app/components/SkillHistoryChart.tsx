@@ -51,7 +51,11 @@ export default function SkillHistoryChart({ skill, values, metric, width = 720, 
   }
 
   const pad = { left: 64, right: 12, top: 8, bottom: 36 };
-  const innerW = Math.max(64, width - pad.left - pad.right);
+  const innerWBase = Math.max(64, width - pad.left - pad.right);
+  // compress the horizontal axis so vertical changes appear more pronounced.
+  // A compressFactor > 1 shortens the x-axis; 1.5 reduces horizontal span to ~66%.
+  const compressFactor = 1.5;
+  const innerW = Math.max(48, Math.round(innerWBase / compressFactor));
   const innerH = Math.max(32, height - pad.top - pad.bottom);
 
   const containerRef = useRef<HTMLDivElement | null>(null);

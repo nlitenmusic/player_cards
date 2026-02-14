@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import PlayerCard from "./components/PlayerCard";
 import PlayerSearch from "./components/PlayerSearch";
@@ -55,6 +56,7 @@ function RatingProgressBar({
 // Replaced inline PlayerCard with shared component in `app/components/PlayerCard.tsx`.
 
 export default function Home() {
+  const router = useRouter();
   const [players, setPlayers] = useState<any[] | null>(null);
   const [filtered, setFiltered] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -218,17 +220,15 @@ export default function Home() {
       ) : null}
 
       <div id="bottomNav" className="bottom-nav" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
-        <Link href="/">
-          <button aria-label="Cards" title="Cards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ width: 20, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="20" height="14" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                <rect x="1" y="2" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <rect x="5" y="6" width="10" height="6" rx="1" stroke="currentColor" strokeWidth="1" fill="currentColor" />
-              </svg>
-            </div>
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
-          </button>
-        </Link>
+        <button aria-label="Cards" title="Cards" type="button" onClick={() => { try { const isCoach = document.cookie.includes('pc_coach_authed=1'); if (isCoach) { router.push('/coach'); } else { router.push('/'); } } catch (e) { try { window.location.href = '/'; } catch (e) {} } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 20, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="20" height="14" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+              <rect x="1" y="2" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <rect x="5" y="6" width="10" height="6" rx="1" stroke="currentColor" strokeWidth="1" fill="currentColor" />
+            </svg>
+          </div>
+          <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
+        </button>
 
         <Link href="/leaderboards">
           <button aria-label="Leaderboards" title="Leaderboards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>

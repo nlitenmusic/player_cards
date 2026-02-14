@@ -12,6 +12,7 @@ export default function CoachDashboard() {
   const [filtered, setFiltered] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [approvedPlayerIds, setApprovedPlayerIds] = useState<Set<string> | null>(null);
+  const [viewMode, setViewMode] = useState<'all' | 'accessible'>('all');
   const [user, setUser] = useState<any>(null);
   const [isCoach, setIsCoach] = useState<boolean | null>(null);
 
@@ -143,22 +144,18 @@ export default function CoachDashboard() {
           <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>CourtSense</h2>
         </div>
 
-        <div style={{ width: '100%', maxWidth: 900, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={async () => {
-            try {
-              const { error } = await supabase.auth.signOut();
-              if (error) throw error;
-              try { router.push('/'); } catch (e) { window.location.href = '/'; }
-              try { document.cookie = 'pc_coach_authed=; Path=/; Max-Age=0'; } catch (e) {}
-            } catch (err:any) {
-              alert(err?.message || String(err));
-            }
-          }} style={{ padding: '8px 12px', background: 'transparent', color: '#111', border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer' }}>Sign out</button>
-        </div>
+        {/* sign out lives on the Account page for coaches; removed here to avoid duplicate actions */}
 
         <div style={{ width: '100%', maxWidth: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 8 }}>
           <div style={{ flex: 1, maxWidth: 620 }}>
             <PlayerSearch players={players} onFiltered={(p)=>setFiltered(p)} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ fontSize: 13, color: '#6b7280' }}>View:</div>
+            <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+              <button onClick={() => setViewMode('all')} style={{ padding: '6px 10px', background: viewMode === 'all' ? '#111' : 'transparent', color: viewMode === 'all' ? '#fff' : '#374151', border: 'none', cursor: 'pointer' }}>All</button>
+              <button onClick={() => setViewMode('accessible')} style={{ padding: '6px 10px', background: viewMode === 'accessible' ? '#111' : 'transparent', color: viewMode === 'accessible' ? '#fff' : '#374151', border: 'none', cursor: 'pointer' }}>My players</button>
+            </div>
           </div>
         </div>
 
@@ -180,17 +177,33 @@ export default function CoachDashboard() {
                 </div>
               </Link>
             ) : null}
-            {(filtered ?? players).map((p:any) => {
+            {(() => {
+              const list = (filtered ?? players) || [];
+              if (viewMode === 'accessible' && approvedPlayerIds) {
+                return list.filter((p:any) => {
+                  const pid = String(p.id);
+                  const owner = (p.supabase_user_id && p.supabase_user_id === user.id) || (p.email && user.email && String(p.email).toLowerCase() === String(user.email).toLowerCase());
+                  return approvedPlayerIds.has(pid) || owner;
+                }).map((p:any) => p);
+              }
+              return list;
+            })().map((p:any) => {
               const pid = String(p.id);
               const hasAccess = approvedPlayerIds ? approvedPlayerIds.has(pid) : false;
               const owner = (p.supabase_user_id && p.supabase_user_id === user.id) || (p.email && user.email && String(p.email).toLowerCase() === String(user.email).toLowerCase());
               return (
                 <div key={pid} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <PlayerCard player={p} maxStats={maxStats} />
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    { (hasAccess || owner) ? (
-                      <button onClick={() => { try { router.push(`/sessions/new?player_id=${encodeURIComponent(pid)}&return_to=/coach`); } catch (e) { window.location.href = `/sessions/new?player_id=${encodeURIComponent(pid)}&return_to=/coach`; } }} style={{ padding: '8px 12px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Add session</button>
-                    ) : (
+                  <PlayerCard
+                    player={p}
+                    maxStats={maxStats}
+                    onAddStats={(playerParam:any) => {
+                      const targetPid = playerParam?.id ?? playerParam?.playerId ?? pid;
+                      try { router.push(`/sessions/new?player_id=${encodeURIComponent(String(targetPid))}&return_to=/coach`); } catch (e) { window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(targetPid))}&return_to=/coach`; }
+                    }}
+                  />
+                  {/* show request access only when coach does not have access */}
+                  {! (hasAccess || owner) ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <button onClick={async () => {
                         try {
                           const payload = { player_id: pid, requester_id: user.id, requester_email: user.email ?? null, status: 'pending' };
@@ -201,14 +214,46 @@ export default function CoachDashboard() {
                           alert(err?.message || String(err));
                         }
                       }} style={{ padding: '8px 12px', background: 'transparent', color: '#0b69ff', border: '1px solid #e6eefb', borderRadius: 6, cursor: 'pointer' }}>Request access</button>
-                    ) }
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+      <CoachBottomNav />
+    </div>
+  );
+}
+// Add bottom navigation matching app homepage
+export function CoachBottomNav() {
+  return (
+    <div id="bottomNav" className="bottom-nav" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#fff', boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 9999, gap: 24 }}>
+      <button aria-label="Cards" title="Cards" type="button" onClick={() => { try { window.location.href = '/'; } catch (e) { window.location.href = '/'; } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div style={{ width: 20, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="20" height="14" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <rect x="1" y="2" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            <rect x="5" y="6" width="10" height="6" rx="1" stroke="currentColor" strokeWidth="1" fill="currentColor" />
+          </svg>
+        </div>
+        <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
+      </button>
+
+      <button onClick={() => { try { window.location.href = '/leaderboards'; } catch (e) { window.location.href = '/leaderboards'; } }} aria-label="Leaderboards" title="Leaderboards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="currentColor"/></svg>
+        <div style={{ fontSize: 11, color: '#6b7280' }}>Leaderboards</div>
+      </button>
+
+      <button onClick={() => { try { window.location.href = '/achievements'; } catch (e) { window.location.href = '/achievements'; } }} aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
+        <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
+      </button>
+
+      <button onClick={() => { try { window.location.href = '/account'; } catch (e) { window.location.href = '/account'; } }} aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>A</div>
+        <div style={{ fontSize: 11, color: '#6b7280' }}>Account</div>
+      </button>
     </div>
   );
 }

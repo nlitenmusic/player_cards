@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AddSessionForm from "../../../components/AddSessionForm";
+import { supabase } from "../../../lib/supabaseClient";
 
 type Step1Props = {
 	firstName: string;
@@ -97,13 +98,14 @@ type Step3Props = {
 	setStep: React.Dispatch<React.SetStateAction<number>>;
 	setError: React.Dispatch<React.SetStateAction<string | null>>;
 	routerPush: (path: string) => void;
+	isCoach?: boolean | null;
 	player: any | null;
 	error: string | null;
 	firstName: string;
 	lastName: string;
 };
 
-function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setStep, setError, routerPush, player, error, firstName, lastName }: Step3Props) {
+function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setStep, setError, routerPush, player, error, firstName, lastName, isCoach }: Step3Props) {
 	useEffect(() => {
 		try { const s = formRef.current?.getState?.(); if (s && s.notes) setPageNotes(s.notes); } catch (e) {}
 	}, []);
@@ -127,7 +129,7 @@ function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setSt
 				const hasAny = Array.isArray(state?.rows) && state.rows.some((r: any) => ['c','p','a','s','t'].some((k) => r[k] != null));
 				if (!hasAny) { setError('Please enter at least one stat before saving'); setSaving(false); return; }
 				await formRef.current?.submit?.();
-				routerPush('/admin');
+				routerPush(isCoach ? '/coach' : '/admin');
 				return;
 			}
 
@@ -142,9 +144,13 @@ function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setSt
 			if (!playerId) {
 				// attempt to create the player now using provided names
 				try {
+					let requester_id: string | null = null;
+					try { const userRes = await supabase.auth.getUser(); requester_id = (userRes?.data as any)?.user?.id ?? null; } catch (e) { requester_id = null; }
+					const body: any = { first_name: firstName, last_name: lastName };
+					if (requester_id) body.requester_id = requester_id;
 					const createRes = await fetch('/api/admin/create-player', {
 						method: 'POST', headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ first_name: firstName, last_name: lastName })
+						body: JSON.stringify(body)
 					});
 					const createJson = await createRes.json();
 					if (!createRes.ok) throw new Error(createJson?.error || 'Failed to create player');
@@ -162,7 +168,7 @@ function Step3({ formRef, rowsSnapshot, pageNotes, setPageNotes, pageDate, setSt
 			const json = await res.json();
 			if (!res.ok) throw new Error(json?.error || 'Failed to create session');
 			try { if (playerId) { fetch('/api/admin/compute-achievements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'player', player_id: playerId }) }).catch(()=>{}); } } catch(e){}
-			routerPush('/admin');
+			routerPush(isCoach ? '/coach' : '/admin');
 		} catch (e: any) {
 			console.error('AddPlayerPageClient: save error', e);
 			setError(e?.message ?? 'Failed to save session');
@@ -201,6 +207,7 @@ export default function AddPlayerPageClient() {
 	const [player, setPlayer] = useState<any | null>(null);
 	const [rowsSnapshot, setRowsSnapshot] = useState<any[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [isCoach, setIsCoach] = useState<boolean | null>(null);
 
 	function todayLocal() {
 		const d = new Date();
@@ -210,15 +217,32 @@ export default function AddPlayerPageClient() {
 		return `${y}-${m}-${day}`;
 	}
 
-	const handleCancel = () => { try { router.push('/admin'); } catch (e) { window.location.href = '/admin'; } };
+	useEffect(() => {
+		(async () => {
+			try {
+				const userRes = await supabase.auth.getUser();
+				const user = (userRes?.data as any)?.user;
+				if (!user) { setIsCoach(null); return; }
+				const res = await fetch('/api/account/is-coach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: user.id }) });
+				const j = await res.json();
+				setIsCoach(Boolean(j?.is_coach));
+			} catch (e) { setIsCoach(false); }
+		})();
+	}, []);
+
+	const handleCancel = () => { const target = isCoach ? '/coach' : '/admin'; try { router.push(target); } catch (e) { window.location.href = target; } };
 
 	const createPlayer = async () => {
 		setError(null);
 		setCreating(true);
 		try {
+			let requester_id: string | null = null;
+			try { const userRes = await supabase.auth.getUser(); requester_id = (userRes?.data as any)?.user?.id ?? null; } catch (e) { requester_id = null; }
+			const body: any = { first_name: firstName, last_name: lastName };
+			if (requester_id) body.requester_id = requester_id;
 			const res = await fetch('/api/admin/create-player', {
 				method: 'POST', headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ first_name: firstName, last_name: lastName })
+				body: JSON.stringify(body)
 			});
 			const json = await res.json();
 			if (!res.ok) throw new Error(json?.error || 'Failed to create player');
@@ -248,7 +272,7 @@ export default function AddPlayerPageClient() {
 		<div style={{ padding: 20 }}>
 			{step === 1 && <Step1 firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} pageDate={pageDate} setPageDate={setPageDate} error={error} creating={creating} handleCancel={handleCancel} createPlayer={createPlayer} setStep={setStep} />}
 			{step === 2 && player && <Step2 formRef={formRef} player={player} setStep={setStep} setRowsSnapshot={setRowsSnapshot} />}
-			{step === 3 && player && <Step3 formRef={formRef} rowsSnapshot={rowsSnapshot} pageNotes={pageNotes} setPageNotes={setPageNotes} pageDate={pageDate} setStep={setStep} setError={setError} routerPush={(p:string)=>{try{router.push(p)}catch(e){window.location.href=p}}} player={player} error={error} firstName={firstName} lastName={lastName} />}
+			{step === 3 && player && <Step3 formRef={formRef} rowsSnapshot={rowsSnapshot} pageNotes={pageNotes} setPageNotes={setPageNotes} pageDate={pageDate} setStep={setStep} setError={setError} routerPush={(p:string)=>{try{router.push(p)}catch(e){window.location.href=p}}} player={player} error={error} firstName={firstName} lastName={lastName} isCoach={isCoach} />}
 		</div>
 	);
 }

@@ -531,16 +531,7 @@ export default function PlayerCard({
       </div>
 
       {/* Link to achievements screen: display above the skill cluster when player has achievements */}
-      {!isAdmin && achievements && achievements.length > 0 ? (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-          <a href={`/achievements/player/${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span>View achievements</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </svg>
-          </a>
-        </div>
-      ) : null}
+      {/* achievements button moved into footer row to align with report and breakdown */}
 
       {/* Footer: left (sessions/admin) and right (skill breakdown + add) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -578,19 +569,41 @@ export default function PlayerCard({
                 <rect x="14" y="15" width="2" height="3" fill="currentColor" />
               </svg>
             </button>
-          ) : (
+            ) : (
             !isAdmin && (
-              <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span>skill breakdown</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <button
+                type="button"
+                aria-label="Skill breakdown"
+                title="Skill breakdown"
+                onClick={() => { try { window.location.href = `/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`; } catch (e) { window.location.href = `/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`; } }}
+                style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <rect x="4" y="10" width="3" height="8" rx="0.5" fill="currentColor" />
+                  <rect x="10.5" y="6" width="3" height="12" rx="0.5" fill="currentColor" />
+                  <rect x="17" y="2" width="3" height="16" rx="0.5" fill="currentColor" />
                 </svg>
-              </a>
+              </button>
             )
           )}
 
+          {/* achievements button (non-admin) placed inline with report/breakdown */}
+          {!isAdmin && achievements && achievements.length > 0 && (
+            <button
+              type="button"
+              aria-label="View achievements"
+              title="View achievements"
+              onClick={() => { try { window.location.href = `/achievements/player/${encodeURIComponent(String(pidForLinks))}`; } catch (e) { window.location.href = `/achievements/player/${encodeURIComponent(String(pidForLinks))}`; } }}
+              style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1-4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor" />
+              </svg>
+            </button>
+          )}
+
           {/* inline admin add-session control (small plus) */}
-          {isAdmin && (
+          {(isAdmin || isOwner) && (
             <button
               type="button"
               aria-label="Add session"

@@ -15,6 +15,11 @@ export function middleware(req: NextRequest) {
       if (path !== '/admin' && adminFlag !== '1') return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
 
+    // If a coach is signed in, send them to the coach realm when they hit the root
+    if (path === '/' && coachFlag === '1') {
+      return NextResponse.redirect(new URL('/coach', req.url));
+    }
+
     // Protect coach routes: require coach cookie, coach role, or admin
     if (path.startsWith('/coach')) {
       if (coachFlag !== '1' && role !== 'coach' && adminFlag !== '1') return NextResponse.redirect(new URL('/unauthorized', req.url));
@@ -27,5 +32,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/coach/:path*'],
+  matcher: ['/', '/admin/:path*', '/coach/:path*'],
 }
