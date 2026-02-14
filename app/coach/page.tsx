@@ -84,6 +84,18 @@ export default function CoachDashboard() {
     return () => { mounted = false; };
   }, [user]);
 
+  useEffect(() => {
+    try {
+      if (isCoach) {
+        try { document.cookie = 'pc_coach_authed=1; Path=/; Max-Age=3600'; } catch (e) {}
+      } else {
+        try { document.cookie = 'pc_coach_authed=; Path=/; Max-Age=0'; } catch (e) {}
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [isCoach]);
+
   if (!user) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 720, background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 6px 30px rgba(0,0,0,0.08)' }}>
@@ -137,6 +149,7 @@ export default function CoachDashboard() {
               const { error } = await supabase.auth.signOut();
               if (error) throw error;
               try { router.push('/'); } catch (e) { window.location.href = '/'; }
+              try { document.cookie = 'pc_coach_authed=; Path=/; Max-Age=0'; } catch (e) {}
             } catch (err:any) {
               alert(err?.message || String(err));
             }

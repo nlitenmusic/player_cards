@@ -65,6 +65,7 @@ export default function AdminDashboard() {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     if ((pwAttempt || "").toString() === "CPAST") {
       try { sessionStorage.setItem('pc_admin_authed', '1'); } catch (e) {}
+      try { document.cookie = 'pc_admin_authed=1; Path=/; Max-Age=3600'; } catch (e) {}
       setAuthed(true);
       setPwError(null);
       setPwAttempt("");
@@ -210,6 +211,7 @@ export default function AdminDashboard() {
                 <PlayerCard
                   player={p}
                   isAdmin
+                  showAvatarUpload={false}
                   maxStats={maxStats}
                   onAddStats={handleAddStats}
                   onEditPlayer={handleEditPlayer}

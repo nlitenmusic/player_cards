@@ -133,15 +133,24 @@ export default function AccountPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 980, margin: '0 auto' }}>
         <h2>Account</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div className="muted" style={{ fontSize: 14 }}>{user.email}</div>
-          <button type="button" onClick={async ()=>{ await supabase.auth.signOut(); if (typeof window !== 'undefined') { window.location.replace(window.location.origin + '/'); } }} style={{ padding: '6px 10px' }}>Sign out</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="avatar" style={{ width: 44, height: 44, borderRadius: 22, objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: 44, height: 44, borderRadius: 22, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{(user.email||'').charAt(0).toUpperCase()}</div>
+            )}
+            <div className="muted" style={{ fontSize: 14 }}>{user.email}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="ios-btn small" onClick={async ()=>{ await supabase.auth.signOut(); if (typeof window !== 'undefined') { window.location.replace(window.location.origin + '/'); } }}>Sign out</button>
+          </div>
         </div>
       </div>
 
       <div className="card" style={{ maxWidth: 980, margin: '18px auto', padding: 16, borderRadius: 8 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search for your player by name or email" style={{ flex: 1, padding: '8px 10px' }} />
-          <button onClick={search} disabled={loading} style={{ padding: '8px 12px' }}>{loading ? 'Searching…' : 'Search'}</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search for your player by name or email" style={{ flex: 1, padding: '8px 10px' }} />
+          <button className="ios-btn" onClick={search} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>
         </div>
 
         <div style={{ marginTop: 16 }}>
@@ -153,7 +162,7 @@ export default function AccountPage() {
           ) : (
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {approvedPlayers.map((p:any) => (
-                <Link key={p.id} href={`/sessions/breakdown?player_id=${encodeURIComponent(String(p.id))}`} style={{ textDecoration: 'none' }}>
+                <Link key={p.id} href={`/account/player/${encodeURIComponent(String(p.id))}`} style={{ textDecoration: 'none' }}>
                   <div className="player-card" style={{ padding: 8, borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
                     <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {p.avatar_url ? <img src={p.avatar_url} alt="avatar" style={{ width: 44, height: 44, objectFit: 'cover' }} /> : <div style={{ width: 44, height: 44 }} />}
@@ -185,12 +194,12 @@ export default function AccountPage() {
                     </div>
                     <div>
                       {requestedMap[String(p.id)] ? (
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <div style={{ color: '#0a7', fontWeight: 700 }}>Requested</div>
-                          <button onClick={()=>cancelClaim(p.id)} style={{ padding: '6px 8px', fontSize: 12 }}>Cancel</button>
+                          <button className="ios-btn small ghost" onClick={()=>cancelClaim(p.id)}>Cancel</button>
                         </div>
                       ) : (
-                        <button onClick={()=>requestClaim(p.id)} style={{ padding: '6px 10px' }}>Request claim</button>
+                        <button className="ios-btn" onClick={()=>requestClaim(p.id)}>Request claim</button>
                       )}
                     </div>
                   </div>
@@ -226,14 +235,49 @@ export default function AccountPage() {
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>Achievements</div>
           </button>
         </Link>
+        
+        <Link href="/account">
+          <button aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{user ? ((user.email||'').charAt(0).toUpperCase()) : 'A'}</div>
+            )}
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>Account</div>
+          </button>
+        </Link>
       </div>
       <style jsx>{`
         .account-container { --bg: #fff; --card-bg: #fff; --panel-bg: #fafafa; --text: #111; --muted: #666; --border: #eee; }
         .card { background: var(--card-bg); color: var(--text); border-radius: 8px; border: 1px solid var(--border); }
         .player-card { background: var(--panel-bg); border: 1px solid var(--border); color: var(--text); }
         .muted { color: var(--muted); }
+
+        /* iOS-like pill buttons */
+        .ios-btn {
+          -webkit-appearance: none;
+          appearance: none;
+          padding: 8px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(0,0,0,0.06);
+          background: linear-gradient(180deg, #ffffff 0%, #f3f4f6 100%);
+          box-shadow: 0 8px 20px rgba(2,6,23,0.06), inset 0 -1px 0 rgba(0,0,0,0.03);
+          color: var(--text);
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+        }
+        .ios-btn.small { padding: 6px 8px; font-size: 12px; }
+        .ios-btn.ghost { background: transparent; border: 1px solid rgba(0,0,0,0.06); box-shadow: none; }
+        .ios-btn:active { transform: translateY(1px) scale(0.998); box-shadow: 0 3px 8px rgba(2,6,23,0.06); }
+        .ios-btn:hover { box-shadow: 0 12px 30px rgba(2,6,23,0.06); }
+        .ios-btn[disabled] { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
+
         @media (prefers-color-scheme: dark) {
           .account-container { --bg: #090909; --card-bg: #0f0f10; --panel-bg: #121214; --text: #e6e6e6; --muted: #9aa0a6; --border: #222; }
+          .ios-btn { background: linear-gradient(180deg, #0f0f10 0%, #0b0b0c 100%); border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 20px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(255,255,255,0.02); color: var(--text); }
+          .ios-btn.ghost { border: 1px solid rgba(255,255,255,0.04); }
         }
       `}</style>
     </div>

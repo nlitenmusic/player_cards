@@ -873,6 +873,76 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
             <div className="skill-panel" style={{ marginTop: 12, background: '#F9F9F9', borderRadius: 12, padding: 12, position: 'relative' as any }}>
               <div style={{ position: 'relative' as any }}>
                 <>
+                {/* Quick fill + Archetypes moved here so they're right below the skill switch */}
+                {(showQuickFill || !player?.id) && (
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <label style={{ fontSize: 12, color: '#6b7280', minWidth: 64 }}>Quick fill</label>
+                    <input
+                      value={customQuickFill[skillLabels[currentSkillIndex]] ?? ''}
+                      onChange={(e) => setCustomQuickFill((p) => ({ ...(p || {}), [skillLabels[currentSkillIndex]]: e.target.value }))}
+                      placeholder="e.g. 20"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
+                          if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
+                        }
+                      }}
+                      style={{ padding: 8, width: 96 }}
+                    />
+                    <button onClick={() => {
+                      const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
+                      if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
+                    }} style={{ padding: '8px 10px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply</button>
+                  </div>
+                )}
+
+                {(showArchetypes || !player?.id) && (
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button title="Load archetypes (built-in + generated)" aria-label="Load archetypes" onClick={() => loadArchetypes()} style={{ padding: '8px 12px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 2, background: 'linear-gradient(135deg,#F59E0B,#EF4444)' }} />
+                      <span>Archetypes</span>
+                    </button>
+                    <select value={selectedArchetypeName ?? ''} onChange={(e) => setSelectedArchetypeName(e.target.value === '' ? null : e.target.value)} style={{ padding: 6 }}>
+                      <option value="">— archetype —</option>
+                      {(archetypesBySkill?.[skillLabels[currentSkillIndex]] || []).filter((a: any) => (a?.name ?? '') !== 'Archetype 1').map((a: any, idx: number) => (
+                        <option key={idx} value={a.name}>{a.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={() => {
+                      const sel = selectedArchetypeName;
+                      const arr = archetypesBySkill?.[skillLabels[currentSkillIndex]] || [];
+                      const arche = sel ? arr.find((x: any) => x?.name === sel) : null;
+                      if (!arche) { setError('Select an archetype first'); return; }
+                      try {
+                        // dynamic require to avoid SSR issues
+                        // @ts-ignore
+                        const mod = require('../utils/archetypes');
+                        const qRaw = (customQuickFill[skillLabels[currentSkillIndex]] ?? '').toString().trim();
+                        let qv: number | null = qRaw === '' ? null : Number(qRaw);
+                        if (qv == null) {
+                          const skillRow: any = skillMap.get(skillLabels[currentSkillIndex]);
+                          if (skillRow) {
+                            const key = normalizeKey(skillLabels[currentSkillIndex]);
+                            if (key === 'movement') {
+                              qv = skillRow.t != null ? Number(skillRow.t) : null;
+                            } else {
+                              const present = ['c','p','a','s','t'].map((k) => skillRow[k]).filter((v) => v != null).map((v) => Number(v));
+                              qv = present.length ? Math.round(present.reduce((a,b) => a + b, 0) / present.length) : null;
+                            }
+                          }
+                        }
+
+                        const toUse = (qv != null && !Number.isNaN(qv)) ? (
+                          (mod.scaleArchetypeToOverallWithBounds ? mod.scaleArchetypeToOverallWithBounds(arche, Math.round(qv), skillLabels[currentSkillIndex], 0.3) :
+                          (mod.scaleArchetypeToMatchOverall ? mod.scaleArchetypeToMatchOverall(arche, Math.round(qv), skillLabels[currentSkillIndex]) :
+                          (mod.scaleArchetypeTemplate ? mod.scaleArchetypeTemplate(arche, Math.round(qv), skillLabels[currentSkillIndex]) : arche)))
+                        ) : arche;
+                        const updated = mod.applyArchetypeToRows(rows, skillLabels[currentSkillIndex], toUse);
+                        setRows(updated);
+                      } catch (e) { console.error(e); setError('Failed to apply archetype'); }
+                    }} style={{ padding: '6px 8px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply archetype</button>
+                  </div>
+                )}
                 <style dangerouslySetInnerHTML={{ __html: `
                   .components-carousel { -ms-overflow-style: none; scrollbar-width: none; }
                   .components-carousel::-webkit-scrollbar { display: none; }
@@ -991,77 +1061,6 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                 ));
               })()}
             </div>
-            {/* Quick fill: show when explicitly requested for new-player flow or when no player id */}
-            {(showQuickFill || !player?.id) && (
-              <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <label style={{ fontSize: 12, color: '#6b7280', minWidth: 64 }}>Quick fill</label>
-                <input
-                  value={customQuickFill[skillLabels[currentSkillIndex]] ?? ''}
-                  onChange={(e) => setCustomQuickFill((p) => ({ ...(p || {}), [skillLabels[currentSkillIndex]]: e.target.value }))}
-                  placeholder="e.g. 20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
-                      if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
-                    }
-                  }}
-                  style={{ padding: 8, width: 96 }}
-                />
-                <button onClick={() => {
-                  const v = Number((customQuickFill[skillLabels[currentSkillIndex]] ?? '').trim());
-                  if (!Number.isNaN(v)) computeAndApplyQuickFillForSkill(skillLabels[currentSkillIndex], Math.round(v));
-                }} style={{ padding: '8px 10px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply</button>
-              </div>
-            )}
-            {/* Archetype controls: only shown when explicitly enabled (add-player flow) */}
-            {(showArchetypes || !player?.id) && (
-              <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button title="Load archetypes (built-in + generated)" aria-label="Load archetypes" onClick={() => loadArchetypes()} style={{ padding: '8px 12px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 12, height: 12, display: 'inline-block', borderRadius: 2, background: 'linear-gradient(135deg,#F59E0B,#EF4444)' }} />
-                  <span>Archetypes</span>
-                </button>
-                <select value={selectedArchetypeName ?? ''} onChange={(e) => setSelectedArchetypeName(e.target.value === '' ? null : e.target.value)} style={{ padding: 6 }}>
-                  <option value="">— archetype —</option>
-                  {(archetypesBySkill?.[skillLabels[currentSkillIndex]] || []).filter((a: any) => (a?.name ?? '') !== 'Archetype 1').map((a: any, idx: number) => (
-                    <option key={idx} value={a.name}>{a.name}</option>
-                  ))}
-                </select>
-                <button onClick={() => {
-                  const sel = selectedArchetypeName;
-                  const arr = archetypesBySkill?.[skillLabels[currentSkillIndex]] || [];
-                  const arche = sel ? arr.find((x: any) => x?.name === sel) : null;
-                  if (!arche) { setError('Select an archetype first'); return; }
-                  try {
-                    // dynamic require to avoid SSR issues
-                    // @ts-ignore
-                    const mod = require('../utils/archetypes');
-                    // determine quick-fill value: prefer explicit quick-fill, otherwise use current skill overall
-                    const qRaw = (customQuickFill[skillLabels[currentSkillIndex]] ?? '').toString().trim();
-                    let qv: number | null = qRaw === '' ? null : Number(qRaw);
-                    if (qv == null) {
-                      const skillRow: any = skillMap.get(skillLabels[currentSkillIndex]);
-                      if (skillRow) {
-                        const key = normalizeKey(skillLabels[currentSkillIndex]);
-                        if (key === 'movement') {
-                          qv = skillRow.t != null ? Number(skillRow.t) : null;
-                        } else {
-                          const present = ['c','p','a','s','t'].map((k) => skillRow[k]).filter((v) => v != null).map((v) => Number(v));
-                          qv = present.length ? Math.round(present.reduce((a,b) => a + b, 0) / present.length) : null;
-                        }
-                      }
-                    }
-
-                    const toUse = (qv != null && !Number.isNaN(qv)) ? (
-                      (mod.scaleArchetypeToOverallWithBounds ? mod.scaleArchetypeToOverallWithBounds(arche, Math.round(qv), skillLabels[currentSkillIndex], 0.3) :
-                      (mod.scaleArchetypeToMatchOverall ? mod.scaleArchetypeToMatchOverall(arche, Math.round(qv), skillLabels[currentSkillIndex]) :
-                      (mod.scaleArchetypeTemplate ? mod.scaleArchetypeTemplate(arche, Math.round(qv), skillLabels[currentSkillIndex]) : arche)))
-                    ) : arche;
-                    const updated = mod.applyArchetypeToRows(rows, skillLabels[currentSkillIndex], toUse);
-                    setRows(updated);
-                  } catch (e) { console.error(e); setError('Failed to apply archetype'); }
-                }} style={{ padding: '6px 8px', background: '#111', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Apply archetype</button>
-              </div>
-            )}
           </div>
 
           <div style={{ width: '100%', boxSizing: 'border-box', maxWidth: 359 }}>

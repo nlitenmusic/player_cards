@@ -53,11 +53,15 @@ export default function AvatarUpload({ playerId, currentAvatar, onUploaded }: { 
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ cursor: 'pointer', fontSize: 12, color: '#0b69ff' }}>
-        {uploading ? 'Uploading...' : 'Change avatar'}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+      <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }} title="Change avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+        </svg>
         <input type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
       </label>
+      {uploading ? <div style={{ fontSize: 12 }}>Uploading…</div> : null}
       {error ? <div style={{ color: 'red', fontSize: 12 }}>{error}</div> : null}
     </div>
   );

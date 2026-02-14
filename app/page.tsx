@@ -190,23 +190,7 @@ export default function Home() {
             <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground)' }}>CourtSense</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {user ? (
-              <Link href="/account">
-                <button aria-label="Account" title="Account" type="button" style={{ display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-                  {user?.user_metadata?.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: 36, height: 36, borderRadius: 18, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{(user.email || '').charAt(0).toUpperCase()}</div>
-                  )}
-                </button>
-              </Link>
-            ) : (
-              <Link href="/">
-                <button aria-label="Sign in" title="Sign in" type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid transparent', background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }}>
-                  Sign in
-                </button>
-              </Link>
-            )}
+            {/* Header intentionally left minimal; account controls moved to bottom nav */}
           </div>
         </div>
 
@@ -257,6 +241,17 @@ export default function Home() {
           <button aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
             <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
+          </button>
+        </Link>
+
+        <Link href="/account">
+          <button aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{user ? ((user.email||'').charAt(0).toUpperCase()) : 'A'}</div>
+            )}
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Account</div>
           </button>
         </Link>
       </div>

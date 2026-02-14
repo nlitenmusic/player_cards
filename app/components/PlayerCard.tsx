@@ -14,6 +14,7 @@ interface PlayerCardProps {
   maxStats?: Record<string, number>;
   onAddStats?: (player:any)=>void;
   onEditPlayer?: (player:any)=>void;
+  showAvatarUpload?: boolean;
   showSessions?: boolean;
   prefetchedAchievements?: Record<string, any[]>;
 }
@@ -25,6 +26,7 @@ export default function PlayerCard({
   maxStats,
   onAddStats,
   onEditPlayer,
+  showAvatarUpload = true,
   showSessions = true,
   prefetchedAchievements,
 }: PlayerCardProps) {
@@ -365,7 +367,7 @@ export default function PlayerCard({
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ width: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
           <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <a href={`/player/${pidForLinks}/progress`} aria-label={`View ${player.first_name ?? 'player'} progress`} title="View progress" style={{ display: 'block', width: '100%', height: '100%' }}>
+            <div aria-hidden style={{ display: 'block', width: '100%', height: '100%' }}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt="avatar" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover' }} />
               ) : (
@@ -376,9 +378,9 @@ export default function PlayerCard({
                   </svg>
                 </div>
               )}
-            </a>
+            </div>
           </div>
-          {isOwner ? (
+          {isAdmin && showAvatarUpload ? (
             <div style={{ marginTop: 6 }}>
               <AvatarUpload playerId={player.id} currentAvatar={avatarUrl} onUploaded={(url)=>setAvatarUrl(url)} />
             </div>
@@ -543,49 +545,76 @@ export default function PlayerCard({
       {/* Footer: left (sessions/admin) and right (skill breakdown + add) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minHeight: 18, display: 'flex', alignItems: 'center' }}>
-            {isAdmin ? (
-            <a href={`/sessions/view?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'underline' }}>SESSIONS: {sessionsCount}</a>
+          {isAdmin ? (
+            <button
+              type="button"
+              aria-label="View sessions"
+              title="View sessions"
+              onClick={() => { try { window.location.href = `/sessions/view?player_id=${encodeURIComponent(String(pidForLinks))}`; } catch (e) { window.location.href = `/sessions/view?player_id=${encodeURIComponent(String(pidForLinks))}`; } }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--card-fg)', cursor: 'pointer', fontSize: 11 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M3 8h18M7 4v4M17 4v4M5 20h14V8H5v12z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              </svg>
+              <span style={{ fontSize: 11 }}>{sessionsCount}</span>
+            </button>
           ) : (
             <div style={{ width: 10 }} />
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {!isAdmin && (
-            <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span>skill breakdown</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 8 }}>
+          {(isAdmin || isOwner) ? (
+            <button
+              onClick={() => { try { window.location.href = `/player/${encodeURIComponent(String(pidForLinks))}/progress`; } catch (e) { window.location.href = `/player/${encodeURIComponent(String(pidForLinks))}/progress`; } }}
+              title="Development Report"
+              aria-label="Development Report"
+              style={{ fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <rect x="8" y="13" width="2" height="5" fill="currentColor" />
+                <rect x="11" y="10" width="2" height="8" fill="currentColor" />
+                <rect x="14" y="15" width="2" height="3" fill="currentColor" />
               </svg>
-            </a>
+            </button>
+          ) : (
+            !isAdmin && (
+              <a href={`/sessions/breakdown?player_id=${encodeURIComponent(String(pidForLinks))}`} style={{ fontStyle: 'italic', fontSize: 11, color: 'var(--card-fg)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span>skill breakdown</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+              </a>
+            )
           )}
 
+          {/* inline admin add-session control (small plus) */}
           {isAdmin && (
-            <>
-              <div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Add session"
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } }}
-                  onClick={() => {
-                    if (typeof onAddStats === 'function') { onAddStats(player); return; }
-                    const pid = player?.id ?? player?.playerId ?? '';
-                    const suffix = isAdmin ? `&return_to=/admin` : '';
-                    if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}${suffix}`;
-                  }}
-                  title="Add session"
-                  style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--card-fg)' }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
-                  </svg>
-                </div>
-              </div>
-            </>
+            <button
+              type="button"
+              aria-label="Add session"
+              title="Add session"
+              onClick={() => {
+                try {
+                  if (typeof onAddStats === 'function') { onAddStats(player); return; }
+                  const pid = player?.id ?? player?.playerId ?? player?.player_id ?? '';
+                  const suffix = '&return_to=/admin';
+                  if (typeof window !== 'undefined') window.location.href = `/sessions/new?player_id=${encodeURIComponent(String(pid))}${suffix}`;
+                } catch (e) {
+                  // ignore
+                }
+              }}
+              style={{ width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--card-fg)', padding: 0 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" fill="currentColor" />
+              </svg>
+            </button>
           )}
         </div>
       </div>
+      {/* absolute floating control removed to avoid duplicate clickable surfaces and z-index issues */}
     </div>
   );
 }

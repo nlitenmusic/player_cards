@@ -26,12 +26,18 @@ export async function POST(req: Request) {
         console.error('create-profile (coach) error', error);
         return NextResponse.json({ error: error.message || String(error) }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, coach: Array.isArray(data) && data.length ? data[0] : data });
+      // set a role cookie so client and middleware can detect coach access
+      return NextResponse.json({ ok: true, coach: Array.isArray(data) && data.length ? data[0] : data }, {
+        headers: { 'Set-Cookie': 'pc_role=coach; Path=/; Max-Age=604800' }
+      });
     }
 
     // For player profile creation we currently don't create a full player card automatically.
     // Return success so onboarding can continue; player cards are typically created by admins or via the add-player flow.
-    return NextResponse.json({ ok: true, message: 'player profile acknowledged' });
+    // set a role cookie for player onboarding
+    return NextResponse.json({ ok: true, message: 'player profile acknowledged' }, {
+      headers: { 'Set-Cookie': 'pc_role=player; Path=/; Max-Age=604800' }
+    });
   } catch (err: any) {
     console.error('create-profile unexpected', err);
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });

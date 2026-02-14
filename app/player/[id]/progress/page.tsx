@@ -143,6 +143,10 @@ export default function PlayerProgressPage({ params }: Props) {
         if (cancelled) return;
         const list = (body && body.players) ? body.players : (Array.isArray(body) ? body : []);
 
+        // detect client-side admin flag (admin dashboard sets `pc_admin_authed` in sessionStorage)
+        let isAdminFlag = false;
+        try { isAdminFlag = (typeof window !== 'undefined') && (sessionStorage.getItem('pc_admin_authed') === '1'); } catch (e) { isAdminFlag = false; }
+
         // If `id` is missing or set to "me", try to locate the player record for the authenticated user
         let found: any = null;
         if (!id || String(id).toLowerCase() === 'me') {
@@ -178,6 +182,16 @@ export default function PlayerProgressPage({ params }: Props) {
 
             // If owner, allow. If not owner, check approved players list for this authenticated user.
             if (!isOwner) {
+              // admins may view any player's reports when the admin flag is set in sessionStorage
+              if (isAdminFlag) {
+                // allowed as admin
+              } else {
+                // continue with normal approved-player checks
+                
+              }
+            }
+            // if not owner and adminFlag handled above, proceed
+            if (!isOwner && !isAdminFlag) {
               // allow if profile explicitly public
               if (found.public_reports === true) {
                 // allowed
