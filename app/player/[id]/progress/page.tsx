@@ -196,61 +196,41 @@ export default function PlayerProgressPage({ params }: Props) {
               if (found.public_reports === true) {
                 // allowed
               } else if (supaId) {
-                  try {
-                    // check if the current user is a coach; coaches in `coaches` table should be allowed
-                    let isCoach = false;
-                    try {
-                      const coachRes = await fetch('/api/account/is-coach', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: supaId }),
-                      });
-                      if (coachRes.ok) {
-                        const cj = await coachRes.json();
-                        isCoach = Boolean(cj?.is_coach);
-                      }
-                    } catch (e) {
-                      isCoach = false;
+                try {
+                  const apr = await fetch('/api/account/approved', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requester_id: supaId }),
+                  });
+                  if (apr.ok) {
+                    const aprj = await apr.json();
+                    const approvedPlayers = aprj.players || [];
+                    const pid = found?.id ?? found?.player_id ?? null;
+                    const allowed = pid && Array.isArray(approvedPlayers) && approvedPlayers.find((p: any) => String(p.id) === String(pid));
+                    if (!allowed) {
+                      setError('Access denied: you can only view reports for players you have access to.');
+                      setPlayer(null);
+                      setLoading(false);
+                      return;
                     }
-
-                    if (isCoach) {
-                      // allow coaches to view reports regardless of explicit player_access rows
-                    } else {
-                      const apr = await fetch('/api/account/approved', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ requester_id: supaId }),
-                      });
-                      if (apr.ok) {
-                        const aprj = await apr.json();
-                        const approvedPlayers = aprj.players || [];
-                        const pid = found?.id ?? found?.player_id ?? null;
-                        const allowed = pid && Array.isArray(approvedPlayers) && approvedPlayers.find((p: any) => String(p.id) === String(pid));
-                        if (!allowed) {
-                          setError('Access denied: you can only view reports for players you have access to.');
-                          setPlayer(null);
-                          setLoading(false);
-                          return;
-                        }
-                      } else {
-                        setError('Access denied: insufficient permissions to view this report.');
-                        setPlayer(null);
-                        setLoading(false);
-                        return;
-                      }
-                    }
-                  } catch (e) {
-                    setError('Access denied: failed to verify permissions.');
+                  } else {
+                    setError('Access denied: insufficient permissions to view this report.');
                     setPlayer(null);
                     setLoading(false);
                     return;
                   }
-                } else {
-                  setError('Access denied: you must be signed in to view reports for this player.');
+                } catch (e) {
+                  setError('Access denied: failed to verify permissions.');
                   setPlayer(null);
                   setLoading(false);
                   return;
                 }
+              } else {
+                setError('Access denied: you must be signed in to view reports for this player.');
+                setPlayer(null);
+                setLoading(false);
+                return;
+              }
             }
           }
         }
