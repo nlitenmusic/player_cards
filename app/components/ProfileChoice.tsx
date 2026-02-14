@@ -29,6 +29,24 @@ export default function ProfileChoice() {
 		return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
 	}, []);
 
+	// If the user returned to the /coach path after OAuth, automatically create a coach profile
+	const [autoCreated, setAutoCreated] = useState(false);
+
+	useEffect(() => {
+		if (!user) return;
+		if (autoCreated) return;
+		if (typeof window === 'undefined') return;
+		try {
+			const path = window.location.pathname || '';
+			if (path.startsWith('/coach')) {
+				setAutoCreated(true);
+				createProfile('coach', { silent: true }).catch(()=>{/* ignore */});
+			}
+		} catch (e) {
+			// ignore
+		}
+	}, [user, autoCreated]);
+
 	async function handlePlayerGoogle() {
 		setErr(null); setMsg(null); setLoading(true);
 		try {
@@ -57,21 +75,23 @@ export default function ProfileChoice() {
 		} finally { setLoading(false); }
 	}
 
-	async function createProfile(asType: 'coach' | 'player') {
-		setErr(null); setMsg(null); setLoading(true);
-		try {
-			if (!user) return setErr('Please sign in first');
-			const body: any = { user_id: user.id, profile_type: asType };
-			if (asType === 'coach') body.display_name = user.user_metadata?.full_name ?? user.email ?? null;
-			if (asType === 'player') body.email = user.email ?? null;
+	async function createProfile(asType: 'coach' | 'player', opts: { silent?: boolean } = {}) {
+		if (!opts.silent) { setErr(null); setMsg(null); setLoading(true); }
+	 	try {
+	 		if (!user) return opts.silent ? false : setErr('Please sign in first');
+	 		const body: any = { user_id: user.id, profile_type: asType };
+	 		if (asType === 'coach') body.display_name = user.user_metadata?.full_name ?? user.email ?? null;
+	 		if (asType === 'player') body.email = user.email ?? null;
 
-			const res = await fetch('/api/account/create-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-			const j = await res.json();
-			if (!res.ok) throw new Error(j?.error || 'Failed');
-			setMsg(asType === 'coach' ? 'Coach profile created.' : 'Player profile created.');
-		} catch (e: any) {
-			setErr(e?.message ?? String(e));
-		} finally { setLoading(false); }
+	 		const res = await fetch('/api/account/create-profile', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+	 		const j = await res.json();
+	 		if (!res.ok) throw new Error(j?.error || 'Failed');
+	 		if (!opts.silent) setMsg(asType === 'coach' ? 'Coach profile created.' : 'Player profile created.');
+	 		return true;
+	 	} catch (e: any) {
+	 		if (!opts.silent) setErr(e?.message ?? String(e));
+	 		return false;
+	 	} finally { if (!opts.silent) setLoading(false); }
 	}
 
 	if (!user) {

@@ -13,10 +13,11 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { user_id, display_name, bio } = body || {};
+    const { user_id, display_name, bio, email } = body || {};
     if (!user_id) return NextResponse.json({ error: 'user_id required' }, { status: 400 });
 
-    const payload = { user_id, display_name: display_name ?? null, bio: bio ?? null };
+    const payload: any = { user_id, display_name: display_name ?? null, bio: bio ?? null };
+    if (email) payload.email = email;
     // upsert so creating again for same user_id is idempotent
     const { data, error } = await admin.from('coaches').upsert([payload], { onConflict: 'user_id' }).select().limit(1);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

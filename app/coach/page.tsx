@@ -124,7 +124,7 @@ export default function CoachDashboard() {
           <RequestCoachForm user={user} adminEmail="info.jordantolbert@gmail.com" />
         </div>
         <div style={{ marginTop: 12 }}>
-          <Link href="/">Return to onboarding</Link>
+          <Link href="/?showOnboarding=1">Return to onboarding</Link>
         </div>
       </div>
     </div>

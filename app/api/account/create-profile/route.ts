@@ -16,12 +16,15 @@ export async function POST(req: Request) {
     const user_id = body?.user_id;
     const profile_type = body?.profile_type;
     const display_name = body?.display_name ?? null;
+    const email = body?.email ?? null;
 
     if (!user_id || !profile_type) return NextResponse.json({ error: 'user_id and profile_type required' }, { status: 400 });
 
     if (profile_type === 'coach') {
       // insert coach profile (idempotent)
-      const { data, error } = await admin.from('coaches').upsert([{ user_id, display_name }], { onConflict: 'user_id' }).select().limit(1);
+      const payload: any = { user_id, display_name };
+      if (email) payload.email = email;
+      const { data, error } = await admin.from('coaches').upsert([payload], { onConflict: 'user_id' }).select().limit(1);
       if (error) {
         console.error('create-profile (coach) error', error);
         return NextResponse.json({ error: error.message || String(error) }, { status: 500 });

@@ -19,9 +19,14 @@ export async function POST(req: Request) {
 
     const requesterId = reqRow.requester_id;
     const requesterEmail = reqRow.requester_email || null;
+    const firstName = reqRow.first_name || null;
+    const lastName = reqRow.last_name || null;
 
-    // create or upsert a coach profile for this user
-    const payload = { user_id: requesterId, display_name: requesterEmail };
+    // derive a friendly display name when possible
+    const displayName = (firstName && lastName) ? `${firstName} ${lastName}` : (requesterEmail ? requesterEmail.split('@')[0] : null);
+
+    // create or upsert a coach profile for this user, include email column
+    const payload: any = { user_id: requesterId, display_name: displayName, email: requesterEmail };
     const { data: coachData, error: coachErr } = await admin.from('coaches').upsert([payload], { onConflict: 'user_id' }).select().limit(1);
     if (coachErr) return NextResponse.json({ error: coachErr.message }, { status: 500 });
 

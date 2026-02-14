@@ -65,6 +65,8 @@ export default function Home() {
   // auth guard state
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+    const [hasRoleCookie, setHasRoleCookie] = useState<boolean | null>(null);
+    const [showOnboardingParam, setShowOnboardingParam] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -87,6 +89,27 @@ export default function Home() {
     });
     return () => { mounted = false; (sub as any)?.subscription?.unsubscribe?.(); };
   }, []);
+
+    useEffect(() => {
+      // check whether a role cookie has been set; if not, require explicit onboarding
+      try {
+        const roleMatch = typeof document !== 'undefined' ? document.cookie.match(/(?:^|; )pc_role=([^;\s]+)/) : null;
+        setHasRoleCookie(Boolean(roleMatch && roleMatch[1]));
+      } catch (e) {
+        setHasRoleCookie(false);
+      }
+    }, [user]);
+
+    useEffect(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search || '');
+          if (params.get('showOnboarding') === '1') setShowOnboardingParam(true);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -152,7 +175,8 @@ export default function Home() {
     </div>
   );
 
-  const showAuthModal = !user;
+  // show onboarding/modal when user is not signed in, or signed in but hasn't chosen a role
+  const showAuthModal = !user || (user && hasRoleCookie === false && !document.cookie.includes('pc_coach_authed=1')) || showOnboardingParam;
 
   if (error) return <div style={{ padding: 20 }}>Error: {error}</div>;
   if (!players) return (
