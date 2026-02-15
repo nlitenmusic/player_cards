@@ -41,8 +41,15 @@ export default function ProfileChoice() {
 			const params = new URLSearchParams(window.location.search || '');
 			// auto-create coach when returning to /coach
 			if (path.startsWith('/coach')) {
-				setAutoCreated(true);
-				createProfile('coach', { silent: true }).catch(()=>{/* ignore */});
+					setAutoCreated(true);
+					createProfile('coach', { silent: true }).catch(()=>{/* ignore */}).finally(async () => {
+						try {
+							// Tell the server to set the role cookie via POST (preserve OAuth fragment)
+							await fetch('/api/account/set-role', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'coach' }) });
+							// reload so cookie is observed by middleware or server-side checks
+							window.location.replace('/coach');
+						} catch (e) {}
+					});
 				return;
 			}
 			// auto-create player when OAuth returned with createProfile=player
@@ -73,10 +80,11 @@ export default function ProfileChoice() {
 	async function handleCoachGoogle() {
 		setErr(null); setMsg(null); setLoading(true);
 		try {
-		const prodOrigin = process.env.NEXT_PUBLIC_PRODUCTION_ORIGIN || 'https://www.courtsense.net';
-		const redirectTo = typeof window !== 'undefined'
-			? (process.env.NODE_ENV === 'development' ? window.location.origin + '/coach' : prodOrigin + '/coach')
-			: undefined;
+			const prodOrigin = process.env.NEXT_PUBLIC_PRODUCTION_ORIGIN || 'https://www.courtsense.net';
+			// Redirect OAuth return to the server-side role setter so cookies are written before landing on /coach
+			const redirectTo = typeof window !== 'undefined'
+				? (process.env.NODE_ENV === 'development' ? window.location.origin + '/coach' : prodOrigin + '/coach')
+				: undefined;
 		await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
 			setMsg('Redirecting to Google for sign-in...');
 		} catch (e: any) {

@@ -20,10 +20,9 @@ export function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/coach', req.url));
     }
 
-    // Protect coach routes: require coach cookie, coach role, or admin
-    if (path.startsWith('/coach')) {
-      if (coachFlag !== '1' && role !== 'coach' && adminFlag !== '1') return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
+    // Note: coach route protection is handled client-side.
+    // Allow the `/coach` pages to load so signed-in users (without server cookies yet)
+    // can be shown the RequestCoachForm and finish onboarding in the browser.
   } catch (e) {
     // if cookie access fails, be conservative and allow UI/server-level checks to handle it
   }

@@ -34,7 +34,9 @@ export async function POST(req: Request) {
     const { error: updateReqErr } = await admin.from('coach_requests').update({ status: 'approved' }).eq('id', requestId);
     if (updateReqErr) return NextResponse.json({ error: updateReqErr.message }, { status: 500 });
 
-    return NextResponse.json({ ok: true, coach: (coachData && coachData[0]) || null });
+    const origin = new URL(req.url).origin || process.env.NEXT_PUBLIC_PRODUCTION_ORIGIN || '';
+    const setRoleUrl = origin + '/api/account/set-role?role=coach';
+    return NextResponse.json({ ok: true, coach: (coachData && coachData[0]) || null, set_role_url: setRoleUrl });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
