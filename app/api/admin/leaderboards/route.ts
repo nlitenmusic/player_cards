@@ -18,8 +18,8 @@ export async function GET(req: Request) {
     const comp = url.searchParams.get("comp");
     const limit = Number(url.searchParams.get("limit") || 50);
 
-    // valid comps: c,p,a,s,t
-    const validComps = new Set(["c", "p", "a", "s", "t"]);
+    // valid comps: c,p,a,s,t and 'overall' (average of components)
+    const validComps = new Set(["c", "p", "a", "s", "t", "overall"]);
 
     // helper to build leaderboard for a single skill+comp
     async function buildLeaderboardFor(skillType: string, component: string, allowedTier?: string) {
@@ -49,19 +49,28 @@ export async function GET(req: Request) {
 
         for (const s of sessions) {
           const stats = s.session_stats || [];
-          for (const r of stats) {
-            const skillNorm = String(r?.skill_type ?? "").trim().toLowerCase();
-            if (skillNorm !== skillType) continue;
+              for (const r of stats) {
+                const skillNorm = String(r?.skill_type ?? "").trim().toLowerCase();
+                if (skillNorm !== skillType) continue;
 
-            let v: number | null = null;
-            if (skillType === "movement") {
-              v = toNumber(r?.t);
-            } else {
-              v = toNumber(r?.[col]);
-            }
-            if (v == null) continue;
-            vals.push(round2(v));
-          }
+                let v: number | null = null;
+                if (component === 'overall') {
+                  // compute mean across primary components for this stat row
+                  const primaryVals = ['c','p','a','s','t'].map((k) => toNumber((r as any)[k])).filter((n) => n !== null) as number[];
+                  if (primaryVals.length > 0) v = round2(primaryVals.reduce((a,b)=>a+b,0)/primaryVals.length);
+                  else {
+                    const other = Object.values(r).map(toNumber).filter((n)=>n!==null) as number[];
+                    if (other.length===1) v = other[0];
+                    else if (other.length>1) v = round2(other.reduce((a,b)=>a+b,0)/other.length);
+                  }
+                } else if (skillType === "movement") {
+                  v = toNumber(r?.t);
+                } else {
+                  v = toNumber(r?.[col]);
+                }
+                if (v == null) continue;
+                vals.push(round2(v));
+              }
         }
 
         if (!vals.length) continue;

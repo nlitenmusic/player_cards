@@ -41,6 +41,7 @@ export default function Leaderboards() {
           <strong>Component:</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <select value={comp} onChange={(e)=>setComp(e.target.value)} style={{ minWidth: 160 }}>
+              <option value="overall">Overall</option>
               {CPAST.map(c=> <option key={c.key} value={c.key}>{c.label}</option>)}
             </select>
             <span style={{ color: '#6b7280' }}>▾</span>

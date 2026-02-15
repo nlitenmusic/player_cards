@@ -105,9 +105,9 @@ export default function PlayerProgressPage({ params }: Props) {
   const [sessionsLoading, setSessionsLoading] = useState(false);
 
   // control state for history chart (declare early so Hooks order is stable)
-  const [selectedSkill, setSelectedSkill] = useState<string>('Serve');
+  const [selectedSkill, setSelectedSkill] = useState<string>('Overall');
   const [selectedMetric, setSelectedMetric] = useState<string>('overall');
-  const [sortMode, setSortMode] = useState<'chronological'|'value_asc'|'value_desc'>('chronological');
+  
   const [openNext, setOpenNext] = useState<Record<string, boolean>>({});
   const [openSkills, setOpenSkills] = useState<Record<string, boolean>>({});
 
@@ -633,6 +633,7 @@ export default function PlayerProgressPage({ params }: Props) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
           <label style={{ fontSize: 13 }}>Skill:</label>
           <select value={selectedSkill} onChange={(e)=>setSelectedSkill(e.target.value)}>
+            <option value="Overall">Overall</option>
             {skillLabels.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <label style={{ fontSize: 13 }}>Metric:</label>
@@ -644,12 +645,7 @@ export default function PlayerProgressPage({ params }: Props) {
             <option value="s">Spin (S)</option>
             <option value="t">Technique (T)</option>
           </select>
-          <label style={{ fontSize: 13 }}>Sort:</label>
-          <select value={sortMode} onChange={(e)=>setSortMode(e.target.value as any)}>
-            <option value="chronological">Chronological</option>
-            <option value="value_asc">Sort by value ↑</option>
-            <option value="value_desc">Sort by value ↓</option>
-          </select>
+          {/* Sort removed: only Skill and Metric controls are shown */}
         </div>
 
         {/* build values array for chart based on selection and sort */}
@@ -665,13 +661,19 @@ export default function PlayerProgressPage({ params }: Props) {
         interface ValuePoint { date?: string; value: number; }
 
         let arr: ValuePoint[] = rawChron.map((r: RawChronItem) => {
-            const v = selectedMetric === 'overall'
-                ? (r.map[key] ?? 0)
-                : ((r.comps && r.comps[selectedMetric]) ? (r.comps[selectedMetric] as any) : (r.map[key] ?? 0));
-            return { date: r.date, value: Number.isFinite(Number(v)) ? Number(v) : 0 };
+          let v: any = 0;
+          if (key === 'overall') {
+            const labels = skillLabels.map(l => l.toLowerCase());
+            const vals = labels.map(lbl => Number.isFinite(Number(r.map[lbl])) ? Number(r.map[lbl]) : 0);
+            v = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length) : 0;
+          } else {
+            v = selectedMetric === 'overall'
+              ? (r.map[key] ?? 0)
+              : ((r.comps && r.comps[selectedMetric]) ? (r.comps[selectedMetric] as any) : (r.map[key] ?? 0));
+          }
+          return { date: r.date, value: Number.isFinite(Number(v)) ? Number(v) : 0 };
         });
-          if (sortMode === 'value_asc') arr = arr.slice().sort((a,b)=>a.value-b.value);
-          else if (sortMode === 'value_desc') arr = arr.slice().sort((a,b)=>b.value-a.value);
+          // keep chronological order (no extra sorting)
 
           return (
             <div>

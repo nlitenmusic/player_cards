@@ -244,30 +244,24 @@ export default function Home() {
           <div style={{ fontSize: 11, color: '#6b7280' }}>Cards</div>
         </button>
 
-        <Link href="/leaderboards">
-          <button aria-label="Leaderboards" title="Leaderboards" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="currentColor"/></svg>
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Leaderboards</div>
-          </button>
-        </Link>
+        <button aria-label="Leaderboards" title="Leaderboards" type="button" onClick={() => { try { router.push('/leaderboards'); } catch (e) { try { window.location.href = '/leaderboards'; } catch (err) {} } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 17h3v-7H3v7zM10 17h3v-12h-3v12zM17 17h3v-4h-3v4z" fill="currentColor"/></svg>
+          <div style={{ fontSize: 11, color: '#6b7280' }}>Leaderboards</div>
+        </button>
 
-        <Link href="/achievements">
-          <button aria-label="Achievements" title="Achievements" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
-          </button>
-        </Link>
+        <button aria-label="Achievements" title="Achievements" type="button" onClick={() => { try { router.push('/achievements'); } catch (e) { try { window.location.href = '/achievements'; } catch (err) {} } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.39 4.85L19 8.24l-3.2 2.98L16.79 16 12 13.77 7.21 16l1  -4.78L5 8.24l4.61-1.39L12 2z" fill="currentColor"/></svg>
+          <div style={{ fontSize: 11, color: '#6b7280' }}>Achievements</div>
+        </button>
 
-        <Link href="/account">
-          <button aria-label="Account" title="Account" type="button" style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{user ? ((user.email||'').charAt(0).toUpperCase()) : 'A'}</div>
-            )}
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Account</div>
-          </button>
-        </Link>
+        <button aria-label="Account" title="Account" type="button" onClick={() => { try { router.push('/account'); } catch (e) { try { window.location.href = '/account'; } catch (err) {} } }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          {user?.user_metadata?.avatar_url ? (
+            <img src={user.user_metadata.avatar_url} alt="account" style={{ width: 28, height: 28, borderRadius: 14, objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: 28, height: 28, borderRadius: 14, background: '#111', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>{user ? ((user.email||'').charAt(0).toUpperCase()) : 'A'}</div>
+          )}
+          <div style={{ fontSize: 11, color: '#6b7280' }}>Account</div>
+        </button>
       </div>
     </div>
   );

@@ -22,39 +22,34 @@ export default function SkillHistoryChart({ skill, values, metric, width = 720, 
   const dataMin = valuesOnly.length ? Math.min(...valuesOnly) : 0;
   const dataMax = valuesOnly.length ? Math.max(...valuesOnly) : 0;
 
-  // determine y domain using bands when available
+  // determine y domain: auto-zoom around actual data so small movements are visible.
   let yMin: number;
   let yMax: number;
+  const dataSpan = Math.max(0, dataMax - dataMin);
+  const dataPad = Math.max(1, Math.round(dataSpan * 0.12));
   if (bands.length) {
-    const vLow = Math.floor(Math.max(0, dataMin));
-    const vHigh = Math.floor(Math.max(0, dataMax));
-    let idxLow = bands.findIndex((b:any) => vLow >= b.min && vLow <= b.max);
-    let idxHigh = bands.findIndex((b:any) => vHigh >= b.min && vHigh <= b.max);
-    if (idxLow === -1) {
-      idxLow = bands.findIndex((b:any) => b.min > vLow);
-      if (idxLow === -1) idxLow = bands.length - 1;
-      else idxLow = Math.max(0, idxLow - 1);
+    // constrain zoom to the overall band bounds but focus on the data range
+    const overallMin = bands[0].min ?? 0;
+    const overallMax = bands[bands.length - 1].max ?? Math.max(30, dataMax + dataPad);
+    yMin = Math.floor(Math.max(overallMin, dataMin - dataPad));
+    yMax = Math.ceil(Math.min(overallMax, dataMax + dataPad));
+    if (yMax <= yMin) {
+      // ensure a small visible span
+      yMin = Math.max(overallMin, yMin - 1);
+      yMax = Math.min(overallMax, yMax + 1);
     }
-    if (idxHigh === -1) {
-      idxHigh = bands.findIndex((b:any) => b.max >= vHigh);
-      if (idxHigh === -1) idxHigh = bands.length - 1;
-    }
-    if (idxLow > idxHigh) { const tmp = idxLow; idxLow = idxHigh; idxHigh = tmp; }
-    idxLow = Math.max(0, idxLow - 1);
-    idxHigh = Math.min(bands.length - 1, idxHigh + 1);
-    yMin = bands[idxLow].min;
-    yMax = bands[idxHigh].max;
   } else {
-    const pad = Math.max(1, Math.round((dataMax - dataMin) * 0.12));
+    const pad = Math.max(1, Math.round(Math.max(1, dataSpan) * 0.12));
     yMin = Math.floor(Math.max(0, dataMin - pad));
     yMax = Math.ceil(dataMax + pad || 30);
+    if (yMax <= yMin) { yMax = yMin + 2; }
   }
 
   const pad = { left: 64, right: 12, top: 8, bottom: 36 };
   const innerWBase = Math.max(64, width - pad.left - pad.right);
   // compress the horizontal axis so vertical changes appear more pronounced.
-  // A compressFactor > 1 shortens the x-axis; 1.5 reduces horizontal span to ~66%.
-  const compressFactor = 1.5;
+  // A compressFactor > 1 shortens the x-axis; 3.0 reduces horizontal span to ~33%.
+  const compressFactor = 3.0;
   const innerW = Math.max(48, Math.round(innerWBase / compressFactor));
   const innerH = Math.max(32, height - pad.top - pad.bottom);
 
