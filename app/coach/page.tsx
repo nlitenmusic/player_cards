@@ -148,8 +148,13 @@ export default function CoachDashboard() {
     <div style={{ padding: 8, paddingTop: 56, paddingBottom: 100 }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/favicon.ico" alt="CourtSense" width={48} height={48} style={{ borderRadius: 10, background: '#fff' }} />
-          <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>CourtSense</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <img src="/favicon.ico" alt="CourtSense" width={48} height={48} style={{ borderRadius: 10, background: '#fff' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <h2 style={{ letterSpacing: 0.5, margin: 0, textAlign: 'center' }}>CourtSense</h2>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>A Performance GPS For Player Development</div>
+            </div>
+          </div>
         </div>
 
         {/* sign out lives on the Account page for coaches; removed here to avoid duplicate actions */}

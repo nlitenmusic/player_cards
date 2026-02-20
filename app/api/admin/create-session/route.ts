@@ -49,6 +49,12 @@ export async function POST(req: Request) {
 
     // build session_stats rows with components c/p/a/s/t
     const validSkills = ["serve","return","forehand","backhand","volley","overhead","movement"];
+    function toNumOrZero(v: any) {
+      if (v == null) return 0;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
     const statsRows = stats_components.map((r: any) => {
       const skill = String(r.skill_type ?? "").trim();
       const key = skill.toLowerCase();
@@ -59,11 +65,11 @@ export async function POST(req: Request) {
         session_id,
         player_id,
         skill_type: skill,
-        c: r.c ?? null,
-        p: r.p ?? null,
-        a: r.a ?? null,
-        s: r.s ?? null,
-        t: r.t ?? null,
+        c: toNumOrZero(r.c),
+        p: toNumOrZero(r.p),
+        a: toNumOrZero(r.a),
+        s: toNumOrZero(r.s),
+        t: toNumOrZero(r.t),
       };
     });
 
@@ -71,11 +77,11 @@ export async function POST(req: Request) {
     const insertRows = statsRows.map((r: any) => ({
       session_id: r.session_id,
       skill_type: r.skill_type,
-      c: r.c ?? null,
-      p: r.p ?? null,
-      a: r.a ?? null,
-      s: r.s ?? null,
-      t: r.t ?? null,
+      c: r.c,
+      p: r.p,
+      a: r.a,
+      s: r.s,
+      t: r.t,
     }));
 
     // sanitize against authoritative schema to guard against unexpected fields

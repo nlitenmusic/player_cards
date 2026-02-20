@@ -202,9 +202,12 @@ export default function Home() {
       <main style={{ paddingTop: 48 }} className="flex min-h-screen w-full flex-col items-start justify-between py-32 px-4 bg-white dark:bg-black">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img src="/favicon.ico" alt="CourtSense" width={40} height={40} style={{ borderRadius: 8, background: '#fff' }} />
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground)' }}>CourtSense</div>
-          </div>
+              <img src="/favicon.ico" alt="CourtSense" width={40} height={40} style={{ borderRadius: 8, background: '#fff' }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground)' }}>CourtSense</div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>A Performance GPS For Player Development</div>
+              </div>
+            </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {/* Header intentionally left minimal; account controls moved to bottom nav */}
           </div>

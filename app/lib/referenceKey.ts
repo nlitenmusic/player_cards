@@ -7,7 +7,7 @@ const serve = {
       max: 6,
       name: "Unstable",
       description:
-        "Serve routine produces unpredictable results. Toss location, contact height, and timing change from attempt to attempt, causing frequent missed serves or defensive first balls.",
+        "Serve produces unpredictable results. Toss location, contact height, and timing change from attempt to attempt, causing frequent missed serves or defensive first balls.",
       anchors: [
         "Toss lands in visibly different locations each serve",
         "Contact height or body alignment changes each attempt",
@@ -19,7 +19,7 @@ const serve = {
       max: 12,
       name: "Conditional",
       description:
-        "Serve routine repeats during slow or cooperative reps but loses structure when speed, scoring pressure, or fatigue increases.",
+        "Serve repeats during slow or cooperative reps but loses structure when speed, scoring pressure, or fatigue increases.",
       anchors: [
         "Serve looks repeatable during warm-ups or basket feeding",
         "Serve rhythm noticeably speeds up or collapses during point play",
@@ -31,7 +31,7 @@ const serve = {
       max: 18,
       name: "Functional",
       description:
-        "Serve routine repeats reliably in practice and most low-pressure match situations, though visible breakdowns appear during important points or extended service games.",
+        "Serve repeats reliably in practice and most low-pressure match situations, though visible breakdowns appear during important points or extended service games.",
       anchors: [
         "Coach can predict serve shape from routine most of the time",
         "Player starts points successfully in most service attempts",
@@ -43,7 +43,7 @@ const serve = {
       max: 24,
       name: "Competitive",
       description:
-        "Serve routine repeats under match pressure. Toss and contact are visually identical across attempts, producing dependable serve outcomes and low service error rates.",
+        "Serve repeats under match pressure. Toss and contact are visually identical across attempts, producing dependable serve outcomes and low service error rates.",
       anchors: [
         "Serve motion looks nearly identical across multiple games",
         "Player maintains serve quality during pressure points",
@@ -55,9 +55,9 @@ const serve = {
       max: 30,
       name: "Advanced / Pro-Track",
       description:
-        "Serve routine remains repeatable across long matches, fatigue, and tactical adjustments. Player maintains serve structure while intentionally varying serve types.",
+        "Serve remains repeatable across long matches, fatigue, and tactical adjustments. Player maintains serve structure while intentionally varying serve types.",
       anchors: [
-        "Serve routine remains stable deep into matches or long sessions",
+        "Serve remains stable deep into matches or long sessions",
         "Player changes serve type without visible mechanical breakdown",
         "Toss and rhythm remain consistent despite tactical changes",
       ],
@@ -67,7 +67,7 @@ const serve = {
       max: 100,
       name: "Tour Reference",
       description:
-        "Serve routine is fully automated. Player maintains identical preparation and contact across all serve types, using subtle variation to disguise intent while preserving reliability.",
+        "Serve is fully automated. Player maintains identical preparation and contact across all serve types, using subtle variation to disguise intent while preserving reliability.",
       anchors: [
         "Different serve types originate from nearly identical routines",
         "Opponents cannot anticipate serve type from preparation",
@@ -159,7 +159,7 @@ const commonBands = {
       min: 0,
       max: 6,
       name: "Unstable",
-      description: "Routine produces unpredictable results: toss, contact and timing shift serve-to-serve, causing frequent missed serves or soft returns.",
+      description: "Produces unpredictable results: toss, contact and timing shift serve-to-serve, causing frequent missed serves or soft returns.",
       anchors: ["Toss/contact vary visibly", "Frequent missed serves or sitters", "Coach cannot predict serve outcome from setup"],
     },
     {
@@ -424,7 +424,80 @@ const referenceKey: Record<string, Record<string, Band[]>> = {
     
   },
   backhand: {
-    ...commonBands,
+    consistency: [
+      {
+        min: 0,
+        max: 6,
+        name: "Unstable",
+        description:
+          "Backhand preparation and contact are erratic: timing, grip or footwork vary and defensive shots are often weak or misdirected.",
+        anchors: [
+          "Contact point and grip change between reps",
+          "Footwork arrives late or off-balance frequently",
+          "Backhand produces many defensive slices or errors",
+        ],
+      },
+      {
+        min: 7,
+        max: 12,
+        name: "Conditional",
+        description:
+          "Stroke repeats in calm drills but degrades under pace, movement, or scoring pressure; quality depends on ideal positioning.",
+        anchors: [
+          "Backhand is reliable in feeding drills",
+          "Depth and timing drift during live points",
+          "Struggles when stretched or rushed",
+        ],
+      },
+      {
+        min: 13,
+        max: 18,
+        name: "Functional",
+        description:
+          "Backhand is dependable in practice and most match moments; occasional visible breakdowns occur under high pressure or extended rallies.",
+        anchors: [
+          "Consistent contact and direction in many reps",
+          "Can produce depth and occasional offense when set-up correctly",
+          "Errors increase mainly in tense situations",
+        ],
+      },
+      {
+        min: 19,
+        max: 24,
+        name: "Competitive",
+        description:
+          "Backhand mechanics and footwork hold under match pressure, enabling consistent depth, neutralization or offensive options in rallies.",
+        anchors: [
+          "Stroke preparation looks consistent across matches",
+          "Maintains depth and direction during pressure points",
+          "Able to use backhand to create or redirect offense reliably",
+        ],
+      },
+      {
+        min: 25,
+        max: 30,
+        name: "Advanced / Pro-Track",
+        description:
+          "Backhand remains stable through long matches and tactical shifts; player varies pace, spin or grip without mechanical compromise.",
+        anchors: [
+          "Backhand structure holds deep into matches",
+          "Adjusts pace/spin without loss of mechanics",
+          "Footwork and recovery remain efficient under fatigue",
+        ],
+      },
+      {
+        min: 31,
+        max: 100,
+        name: "Tour Reference",
+        description:
+          "Backhand is automated: consistent preparation, reliable contact, and subtle variation for disguise and tactical effect across contexts.",
+        anchors: [
+          "Different backhand looks originate from the same prep",
+          "Opponents cannot reliably anticipate outcome from setup",
+          "Backhand quality remains unchanged regardless of score or fatigue",
+        ],
+      },
+    ],
     overall: [
       { min: 0, max: 6, name: "Unstable", description: "Backhand timing and preparation are erratic; defensive shots are weak and recovery is slow.", anchors: ["Erratic preparation","Weak defensive shots","Slow recovery"] },
       { min: 7, max: 12, name: "Conditional", description: "Executes usable backhands in calm situations but loses reliability and depth under pressure.", anchors: ["Works calm settings","Loses depth under pressure","Inconsistent offense"] },
@@ -433,6 +506,9 @@ const referenceKey: Record<string, Record<string, Band[]>> = {
       { min: 25, max: 30, name: "Advanced / Pro-Track", description: "Backhand offers tactical variety and dependable power or disguise when needed to finish or set up points.", anchors: ["Tactical variety","Dependable disguise","Finishes points"] },
       { min: 31, max: 100, name: "Tour Reference", description: "A refined, powerful, and precise backhand that operates as a consistent offensive and defensive tool at elite levels.", anchors: ["Refined & precise","Elite-level tool","Consistent winner"] },
     ],
+    power: commonBands.power,
+    accuracy: commonBands.accuracy,
+    spin: commonBands.spin,
     technique: [
       { min: 0, max: 6, name: "Unstable", description: "Swing mechanics are inconsistent; motion is inefficient and recovery is slow.", anchors: ["Inconsistent grips","Inefficient motion","Slow recovery"] },
       { min: 7, max: 12, name: "Conditional", description: "Mechanics hold in controlled settings but efficiency degrades under pressure or when stretched.", anchors: ["Holds in calm settings","Degrades under pressure","Efficiency drops when stretched"] },

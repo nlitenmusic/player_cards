@@ -10,6 +10,7 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
   const [sessions, setSessions] = useState<any[] | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialSessionId ?? null);
   const [notes, setNotes] = useState<string>('');
+  const [playerName, setPlayerName] = useState<string | null>(null);
   const [pendingSessionPayload, setPendingSessionPayload] = useState<any | null>(null);
   const formRef = useRef<any>(null);
 
@@ -48,6 +49,26 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
   useEffect(() => {
     if (selectedSessionId) setStep(2);
   }, [selectedSessionId]);
+
+  useEffect(() => {
+    if (!playerId) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/players`);
+        if (!res.ok) return;
+        const j = await res.json();
+        const list = j.players || j.data || j || [];
+        if (!Array.isArray(list)) return;
+        const found = list.find((p: any) => String(p.id) === String(playerId) || String(p.player_id) === String(playerId));
+        if (found) {
+          const name = found.full_name || found.name || `${found.first_name || ''} ${found.last_name || ''}`.trim();
+          if (name) setPlayerName(name);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, [playerId]);
 
   // If we have a pending payload (created by clicking a session before the
   // form mounted), apply it when the detail step is active and the form is ready.
@@ -92,7 +113,7 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
       <div style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 12, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ transform: 'translateY(48px)', willChange: 'transform' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Sessions</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Sessions{playerName ? ` — ${playerName}` : ''}</div>
             <a href="/admin" style={{ fontSize: 12, color: 'var(--muted)' }}>Close</a>
           </div>
 
@@ -158,7 +179,7 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
       <div style={{ width: 393, height: 852, background: 'var(--card-bg)', padding: 8, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ transform: 'translateY(48px)', willChange: 'transform' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Session detail</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Sessions{playerName ? ` — ${playerName}` : ''}</div>
           </div>
 
           <div style={{ marginTop: 0, flexGrow: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start' }}>
@@ -228,6 +249,9 @@ export default function ViewSessionPageClient({ playerId, initialSessionId }: { 
         <div style={{ transform: 'translateY(48px)', willChange: 'transform' }}>
           <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}>
             <div style={{ width: 320 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>Sessions{playerName ? ` — ${playerName}` : ''}</div>
+              </div>
               <div style={{ width: 320, height: 22, fontFamily: 'Inter', fontSize: 16, lineHeight: '22px', color: 'var(--foreground)' }}>Notes</div>
               <textarea
                 value={localNotes}

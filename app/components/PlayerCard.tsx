@@ -39,13 +39,42 @@ export default function PlayerCard({
   const rowsRaw = player.row_averages ?? player.rowAverages ?? player.rowAveragesByName ?? [];
   const skillLabels = ["Serve", "Return", "Forehand", "Backhand", "Volley", "Overhead", "Movement"];
   const skillScores = skillLabels.map((label, idx) => {
-    if (Array.isArray(rowsRaw)) {
-      return Number(rowsRaw[idx] ?? 0);
+    try {
+      if (Array.isArray(rowsRaw)) {
+        return Number(rowsRaw[idx] ?? 0);
+      }
+      const candidates = [
+        label,
+        label.toLowerCase(),
+        normalizeKey(label),
+        normalizeKey(label).replace(/\s+/g, ''),
+        label.replace(/\s+/g, '_').toLowerCase(),
+        label.replace(/\s+/g, '').toLowerCase()
+      ].filter(Boolean);
+
+      for (const k of candidates) {
+        if (!Object.prototype.hasOwnProperty.call(rowsRaw, k)) continue;
+        const raw = (rowsRaw as any)[k];
+        if (raw == null) continue;
+        if (typeof raw === 'object') {
+          const nums = Object.values(raw).map((x) => toNumber(x)).filter((n) => n !== null) as number[];
+          if (nums.length > 0) return round2(nums.reduce((a, b) => a + b, 0) / nums.length);
+          continue;
+        }
+        const n = Number(raw);
+        if (!Number.isNaN(n)) return n;
+      }
+
+      // fallback: common top-level fields for movement
+      const alt = (player as any)?.movement ?? (player as any)?.movement_score ?? (player as any)?.movementScore;
+      if (typeof alt === 'number') return alt;
+      return 0;
+    } catch (e) {
+      return 0;
     }
-    // try multiple normalizations for keys
-    const v = rowsRaw[label] ?? rowsRaw[label.toLowerCase()] ?? rowsRaw[label.replace(/\s+/g,'_').toLowerCase()];
-    return Number(v ?? 0);
   });
+
+  // compact skill-cluster removed; legacy flag deleted
 
   const level = Math.floor(Math.max(0, ratingNum) / MICRO);
   const levelStart = level * MICRO;
@@ -92,7 +121,11 @@ export default function PlayerCard({
     const saturation = 72;
     const background = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     const color = lightness > 56 ? '#111' : '#fff';
-    return { background, color };
+    // chip-friendly values: translucent white background with a faint tint border
+    const chipBg = 'rgba(255,255,255,0.96)';
+    const chipBorder = `hsla(${hue}, ${saturation}%, ${Math.max(12, lightness)}%, 0.36)`;
+    const chipShadow = `0 6px 14px hsla(${hue}, ${saturation}%, ${Math.max(12, lightness)}%, 0.14)`;
+    return { background, color, chipBg, chipBorder, chipShadow };
   }
 
   function getSkillHeatStyle(skill: string, value: number) {
@@ -136,6 +169,48 @@ export default function PlayerCard({
       return computeBandColor(0, 0.5);
     } catch (e) {
       return null;
+    }
+  }
+
+  function summarizeDescription(text: string | undefined | null, limit = 6) {
+    if (!text) return '';
+    const s = String(text).trim();
+    const firstSentenceMatch = s.match(/^(.*?)[\.\!\?;]/);
+    const first = firstSentenceMatch ? firstSentenceMatch[1].trim() : s;
+    const words = first.replace(/\s+/g, ' ').split(' ').filter(Boolean);
+    if (words.length <= limit) return words.join(' ');
+    return words.slice(0, limit).join(' ') + '…';
+  }
+
+  function getOverallBand(skill: string, value: number) {
+    try {
+      const sk = normalizeKey(skill);
+      const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+      if (!skillEntry) return { name: 'Unknown', description: '' };
+      const compCandidates = ['consistency', 'technique', 'power', 'accuracy', 'spin'];
+      const v = Number(value);
+      if (Number.isNaN(v)) return { name: 'Unknown', description: '' };
+      const vLookup = Math.floor(v);
+      for (const comp of compCandidates) {
+        const bands = (skillEntry as any)[comp];
+        if (!bands || !Array.isArray(bands) || bands.length === 0) continue;
+        let bandIdx = bands.findIndex((b: any) => vLookup >= b.min && vLookup <= b.max);
+        if (bandIdx === -1) {
+          const mids = bands.map((b: any) => ((Number(b.min) + Number(b.max)) / 2));
+          let best = 0;
+          let bestDist = Math.abs(v - mids[0]);
+          for (let i = 1; i < mids.length; i++) {
+            const d = Math.abs(v - mids[i]);
+            if (d < bestDist) { bestDist = d; best = i; }
+          }
+          bandIdx = best;
+        }
+        const band = bands[bandIdx];
+        return { name: band.name || 'Band', description: band.description || '' };
+      }
+      return { name: 'Unknown', description: '' };
+    } catch (e) {
+      return { name: 'Unknown', description: '' };
     }
   }
 
@@ -222,6 +297,17 @@ export default function PlayerCard({
 
   // fetch achievements for display on player cards (show all badges under skill cluster)
   const [achievements, setAchievements] = useState<any[]>([]);
+
+  const [expandedInfo, setExpandedInfo] = useState<{ label: string; score: number; band: any } | null>(null);
+
+  useEffect(() => {
+    if (!expandedInfo) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setExpandedInfo(null);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [expandedInfo]);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -425,115 +511,89 @@ export default function PlayerCard({
         {/* rating moved below avatar so tier/progress can span remaining width */}
       </div>
 
-      {/* Skill cluster: 2-3-2 pentagon-like layout (top 2, middle 3, bottom 2) */}
-      <div style={{ width: '100%', maxWidth: 160, margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-            {skillLabels.slice(0,2).map((label, idx) => {
-              const i = idx;
-              const scoreRaw = skillScores[i] ?? 0;
-              const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
-              const heat = getSkillHeatStyle(label, scoreRaw);
-              const bg = heat?.background ?? '#efefef';
-              const fg = heat?.color ?? '#000';
-              return (
-                <div key={label} style={{ flex: '0 0 34%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, margin: '0 2%' }}>
-                  <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
-                    {((directionMap[label.toLowerCase()] ?? 0) !== 0) && (
-                      <div
-                        style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}
-                        title={((deltaMap[label.toLowerCase()] ?? null) !== null) ? `${(deltaMap[label.toLowerCase()]! > 0 ? '+' : '')}${deltaMap[label.toLowerCase()]}` : (directionMap[label.toLowerCase()] === 1 ? 'Up' : 'Down')}
-                      >
-                        {directionMap[label.toLowerCase()] === 1 ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M12 8l4 4H8l4-4z" fill="#16a34a" />
-                          </svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M12 16l-4-4h8l-4 4z" fill="#dc2626" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Skill cluster removed */}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-            {skillLabels.slice(2,5).map((label, idx) => {
-              const i = 2 + idx;
-              const scoreRaw = skillScores[i] ?? 0;
-              const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
-              const heat = getSkillHeatStyle(label, scoreRaw);
-              const bg = heat?.background ?? '#efefef';
-              const fg = heat?.color ?? '#000';
-              return (
-                <div key={label} style={{ flex: '0 0 30%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
-                    {((directionMap[label.toLowerCase()] ?? 0) !== 0) && (
-                      <div
-                        style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}
-                        title={((deltaMap[label.toLowerCase()] ?? null) !== null) ? `${(deltaMap[label.toLowerCase()]! > 0 ? '+' : '')}${deltaMap[label.toLowerCase()]}` : (directionMap[label.toLowerCase()] === 1 ? 'Up' : 'Down')}
-                      >
-                        {directionMap[label.toLowerCase()] === 1 ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M12 8l4 4H8l4-4z" fill="#16a34a" />
-                          </svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M12 16l-4-4h8l-4 4z" fill="#dc2626" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
+        {/* Skill detail rows: show overall numeric value + band description */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+          {skillLabels.map((label, idx) => {
+            const scoreRaw = skillScores[idx] ?? 0;
+            const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
+            const band = getOverallBand(label, scoreRaw);
+            const summary = summarizeDescription(band.description, 6);
+            const heat = getSkillHeatStyle(label, scoreRaw) || { background: 'var(--card-row-bg, #efefef)', color: '#111', chipBg: 'rgba(255,255,255,0.96)', chipBorder: 'rgba(0,0,0,0.06)', chipShadow: '0 6px 14px rgba(0,0,0,0.06)' };
+            const rowBg = heat.chipBg || heat.background || 'var(--card-row-bg, #efefef)';
+            // ensure readable text on chip backgrounds (chips are light), use a dark neutral
+            const textColor = '#0f172a';
+            return (
+              <div
+                key={label}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${label} details`}
+                onClick={() => setExpandedInfo({ label, score: scoreRaw, band })}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedInfo({ label, score: scoreRaw, band }); } }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: 4,
+                  background: heat.chipBg || 'rgba(255,255,255,0.96)',
+                  borderRadius: 16,
+                  padding: '8px 12px',
+                  boxSizing: 'border-box',
+                  height: 44,
+                  minHeight: 44,
+                  maxHeight: 44,
+                  overflow: 'hidden',
+                  position: 'relative',
+                  border: `2px solid ${heat.chipBorder || 'rgba(0,0,0,0.06)'}`,
+                  boxShadow: heat.chipShadow || '0 6px 14px rgba(0,0,0,0.06)',
+                  backdropFilter: 'blur(6px)',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12 }}>
+                  <div style={{ width: 64, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: heat.background }}>{score}</div>
                   </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
-                </div>
-              );
-            })}
-          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-            {skillLabels.slice(5,7).map((label, idx) => {
-              const i = 5 + idx;
-              const scoreRaw = skillScores[i] ?? 0;
-              const score = Number.isFinite(scoreRaw) ? Number(scoreRaw).toFixed(1) : scoreRaw;
-              const heat = getSkillHeatStyle(label, scoreRaw);
-              const bg = heat?.background ?? '#efefef';
-              const fg = heat?.color ?? '#000';
-              return (
-                <div key={label} style={{ flex: '0 0 34%', maxWidth: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, margin: '0 2%' }}>
-                  <div style={{ position: 'relative', width: 44, height: 44, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: fg, fontWeight: 700 }}>{score}</div>
-                    {((directionMap[label.toLowerCase()] ?? 0) !== 0) && (
-                      <div
-                        style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }}
-                        title={((deltaMap[label.toLowerCase()] ?? null) !== null) ? `${(deltaMap[label.toLowerCase()]! > 0 ? '+' : '')}${deltaMap[label.toLowerCase()]}` : (directionMap[label.toLowerCase()] === 1 ? 'Up' : 'Down')}
-                      >
-                        {directionMap[label.toLowerCase()] === 1 ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M12 8l4 4H8l4-4z" fill="#16a34a" />
-                          </svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path d="M12 16l-4-4h8l-4 4z" fill="#dc2626" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingRight: 40 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: textColor, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
                   </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, color: 'var(--card-fg)', textTransform: 'uppercase', textAlign: 'center', width: '100%' }}>{label}</div>
                 </div>
-              );
-            })}
-          </div>
+                {/* decorative info icon anchored to right-center inside chip (click falls through to chip) */}
+                <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.72, pointerEvents: 'none' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm.75 6a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0zM11 11h2v6h-2v-6z" fill={heat.background} />
+                  </svg>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+
+        {expandedInfo && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${expandedInfo.label} full description`}
+            onClick={() => setExpandedInfo(null)}
+            style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, background: 'rgba(2,6,23,0.48)' }}
+          >
+            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(92%,420px)', background: 'white', borderRadius: 12, padding: 18, boxShadow: '0 20px 50px rgba(2,6,23,0.28)', color: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 16, fontWeight: 800 }}>{expandedInfo.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: getSkillHeatStyle(expandedInfo.label, expandedInfo.score)?.background || '#111' }}>{Number.isFinite(expandedInfo.score) ? Number(expandedInfo.score).toFixed(1) : expandedInfo.score}</div>
+              </div>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>{expandedInfo.band?.name}</div>
+              <div style={{ color: '#334155', lineHeight: 1.4 }}>{expandedInfo.band?.description}</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+                <button onClick={() => setExpandedInfo(null)} style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Link to achievements screen: display above the skill cluster when player has achievements */}
       {/* achievements button moved into footer row to align with report and breakdown */}
