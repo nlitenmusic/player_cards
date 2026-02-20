@@ -15,19 +15,25 @@ function parseCookies(cookieHeader: string | null) {
   return map;
 }
 
-export async function GET(req: Request, { params }: { params: { path?: string[] } }) {
+export async function GET(request: any, context: any) {
   try {
-    const cookieHeader = req.headers.get('cookie');
+    // normalize params: some Next types may provide params as a Promise in build environments
+    let paramsObj = context?.params;
+    if (paramsObj && typeof paramsObj.then === 'function') {
+      try { paramsObj = await paramsObj; } catch (e) { paramsObj = undefined; }
+    }
+
+    const cookieHeader = request.headers?.get ? request.headers.get('cookie') : (request.headers && request.headers.cookie) || null;
     const cookies = parseCookies(cookieHeader);
     const adminFlag = cookies['pc_admin_authed'] || '';
 
     // reconstruct original admin path
-    const rest = params?.path ? '/' + params.path.join('/') : '';
+    const rest = paramsObj?.path ? '/' + (Array.isArray(paramsObj.path) ? paramsObj.path.join('/') : String(paramsObj.path)) : '';
     const originalPath = '/admin' + rest;
 
     // allow the top-level `/admin` page to load even when not admin (unlock form)
     if (originalPath !== '/admin' && adminFlag !== '1') {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
 
     // permit the request to continue to the original destination
@@ -37,6 +43,6 @@ export async function GET(req: Request, { params }: { params: { path?: string[] 
   }
 }
 
-export async function POST(req: Request, { params }: { params: { path?: string[] } }) {
-  return GET(req, { params });
+export async function POST(request: any, context: any) {
+  return GET(request, context);
 }
