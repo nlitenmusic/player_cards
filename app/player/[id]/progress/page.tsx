@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { supabase } from '../../../lib/supabaseClient';
-import { getMacroTier, MICRO, macroTiers } from "../../../lib/tiers";
+import { getMacroTier, MICRO, macroTiers, computeBandColor } from "../../../lib/tiers";
 import referenceKey, { normalizeKey, getBand } from '../../../lib/referenceKey';
 import SkillHistoryChart from '../../../components/SkillHistoryChart';
 
@@ -290,19 +290,7 @@ export default function PlayerProgressPage({ params }: Props) {
 
   const skillLabels = ["Serve","Return","Forehand","Backhand","Volley","Overhead","Movement"];
   const compLabelMap: Record<string,string> = { c: 'Consistency', p: 'Power', a: 'Accuracy', s: 'Spin', t: 'Technique' };
-  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
-  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
-
-  function computeBandColor(bandIdx: number, frac = 0.5) {
-    const hue = BAND_BASE_HUES[bandIdx] ?? 200;
-    const baseL = BAND_BASE_LIGHTNESS[bandIdx] ?? 72;
-    const darken = Math.round(Math.min(22, frac * 22));
-    const lightness = Math.max(12, Math.min(92, baseL - darken));
-    const saturation = 72;
-    const background = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-    const color = lightness > 56 ? '#111' : '#fff';
-    return { background, color };
-  }
+  
 
   function getSkillHeatStyle(skill: string, value: number | null) {
     try {

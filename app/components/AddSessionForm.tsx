@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef, useMemo, useImperativeHandle } from "react";
 import BandTooltip from "./Leaderboards/BandTooltip";
 import referenceKey, { normalizeKey, getBand } from "../lib/referenceKey";
+import { computeBandColor } from "../lib/tiers";
 
 type ComponentKey = 'c' | 'p' | 'a' | 's' | 't';
 type ComponentRow = { skill_type: string; c?: number | null; p?: number | null; a?: number | null; s?: number | null; t?: number | null };
@@ -652,19 +653,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
     submit: async () => { await submit(); }
   }), [rows, date, notes, selectedSessionId]);
 
-  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
-  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
-
-  function computeBandColor(bandIdx: number, frac = 0.5) {
-    const hue = BAND_BASE_HUES[bandIdx] ?? 200;
-    const baseL = BAND_BASE_LIGHTNESS[bandIdx] ?? 72;
-    const darken = Math.round(Math.min(22, frac * 22));
-    const lightness = Math.max(12, Math.min(92, baseL - darken));
-    const saturation = 72;
-    const background = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-    const color = lightness > 56 ? '#111' : '#fff';
-    return { background, color };
-  }
+  
 
   function getComponentHeatStyle(skill: string, component: string, rawVal: any) {
     const v = rawVal == null || rawVal === '' ? null : Number(rawVal);

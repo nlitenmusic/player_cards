@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import ProgressBar from "./ProgressBar";
-import { getTierColor, getMacroTier, macroTiers, MICRO } from "../lib/tiers";
+import { getTierColor, getMacroTier, macroTiers, MICRO, computeBandColor } from "../lib/tiers";
 import referenceKey, { normalizeKey } from "../lib/referenceKey";
 import AvatarUpload from "./AvatarUpload";
 import { supabase } from "../lib/supabaseClient";
@@ -85,7 +85,8 @@ export default function PlayerCard({
   const nextMacro = macroTiers[macro.index + 1] ?? macro;
   const nextTierLevel = nextMacro.min;
 
-  const rankColor = getTierColor(tierName);
+  // Use the numeric rating for heatmap color so overall matches per-skill heat mapping
+  const rankColor = getTierColor(ratingNum);
 
   // canonical player id to use in links (fallbacks for different shapes)
   const pidForLinks = player?.id ?? player?.playerId ?? player?.player_id ?? '';
@@ -110,23 +111,7 @@ export default function PlayerCard({
     return Math.abs((value ?? 0) - top) < 1e-6;
   }
 
-  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
-  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
-
-  function computeBandColor(bandIdx: number, frac = 0.5) {
-    const hue = BAND_BASE_HUES[bandIdx] ?? 200;
-    const baseL = BAND_BASE_LIGHTNESS[bandIdx] ?? 72;
-    const darken = Math.round(Math.min(22, frac * 22));
-    const lightness = Math.max(12, Math.min(92, baseL - darken));
-    const saturation = 72;
-    const background = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-    const color = lightness > 56 ? '#111' : '#fff';
-    // chip-friendly values: translucent white background with a faint tint border
-    const chipBg = 'rgba(255,255,255,0.96)';
-    const chipBorder = `hsla(${hue}, ${saturation}%, ${Math.max(12, lightness)}%, 0.36)`;
-    const chipShadow = `0 6px 14px hsla(${hue}, ${saturation}%, ${Math.max(12, lightness)}%, 0.14)`;
-    return { background, color, chipBg, chipBorder, chipShadow };
-  }
+  
 
   function getSkillHeatStyle(skill: string, value: number) {
     try {
@@ -443,42 +428,32 @@ export default function PlayerCard({
         border: '1px solid var(--border)'
       }}
     >
-      {/* admin favorite button placed in the top-right so score aligns with progress */}
-      {isAdmin && (
-        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 6 }}>
-          <button onClick={toggleFavorite} aria-pressed={isFavorited} title={isFavorited ? 'Unfavorite' : 'Favorite'} style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border)', background: isFavorited ? '#fef3c7' : 'var(--card-bg)', cursor: 'pointer' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={isFavorited ? 'gold' : 'none'} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-            </svg>
-          </button>
+      {/* avatar in top-right (absolute) */}
+
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 6 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div aria-hidden style={{ display: 'block', width: '100%', height: '100%' }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
+                  <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
+                </svg>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+        {isAdmin && showAvatarUpload ? (
+          <div style={{ marginTop: 6, display: 'flex', justifyContent: 'flex-end' }}>
+            <AvatarUpload playerId={player.id} currentAvatar={avatarUrl} onUploaded={(url)=>setAvatarUrl(url)} />
+          </div>
+        ) : null}
+      </div>
       {/* overall rating moved below the avatar (see header) */}
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ width: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 24, background: mixWithWhite(rankColor, 0.7), border: `3px solid ${rankColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <div aria-hidden style={{ display: 'block', width: '100%', height: '100%' }}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="avatar" style={{ width: 42, height: 42, borderRadius: 21, objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: 42, height: 42, borderRadius: 21, background: '#8E8E8E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z" fill="#fff" />
-                    <path d="M4.5 20.25c0-3.038 2.962-5.5 7.5-5.5s7.5 2.462 7.5 5.5V21H4.5v-.75z" fill="#fff" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-          {isAdmin && showAvatarUpload ? (
-            <div style={{ marginTop: 6 }}>
-              <AvatarUpload playerId={player.id} currentAvatar={avatarUrl} onUploaded={(url)=>setAvatarUrl(url)} />
-            </div>
-          ) : null}
-          {/* claim requests moved to user Account page (no badge on homepage) */}
-          <div title="Court Sense Rating" style={{ fontSize: 14, fontWeight: 700, color: 'var(--card-fg)' }}>{Number.isFinite(ratingNum) ? `${Number(ratingNum).toFixed(1)} CSR` : `${ratingNum} CSR`}</div>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, paddingTop: 6 }}>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--card-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.first_name || ''}</div>
@@ -486,17 +461,12 @@ export default function PlayerCard({
             <div style={{ fontSize: 10, color: 'var(--card-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.last_name}</div>
           ) : null }
           {/* achievements rendered below the skill cluster */}
-          <div style={{ fontSize: 9, color: 'var(--muted)' }}>{tierName}</div>
 
           <div style={{ marginTop: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }} aria-hidden>
-              <div title={`${Math.max(0, Math.min(100, Math.round(levelProgressPct)))}% towards ${nextMacro.name ?? 'next tier'}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: rankColor, marginRight: 6 }}>{Math.max(0, Math.min(100, Math.round(levelProgressPct)))}%</div>
-                {sessionChangePct !== null ? (
-                  <div style={{ fontSize: 11, fontWeight: 700, color: sessionChangePct > 0 ? '#16a34a' : (sessionChangePct < 0 ? '#dc2626' : '#6b7280') }}>{sessionChangePct > 0 ? `+${sessionChangePct}%` : `${sessionChangePct}%`}</div>
-                ) : null}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: rankColor }}>{tierName}</div>
+                <div title="Court Sense Rating" style={{ fontSize: 12, fontWeight: 800, color: rankColor }}>{Number.isFinite(ratingNum) ? `${Number(ratingNum).toFixed(1)} CSR` : `${ratingNum} CSR`}</div>
               </div>
-            </div>
             <div style={{ height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden', position: 'relative' }}>
               {prevLevelProgressPct !== null && (
                 <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.round(prevLevelProgressPct)}%`, pointerEvents: 'none', transition: 'width 300ms ease' }}>
@@ -504,6 +474,12 @@ export default function PlayerCard({
                 </div>
               )}
               <div style={{ width: `${Math.round(levelProgressPct)}%`, height: '100%', background: rankColor, transition: 'width 300ms ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }} aria-hidden>
+              <div title={`Progress to ${nextMacro.name ?? 'next tier'}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: rankColor, marginRight: 8 }}>{Math.max(0, Math.min(100, Math.round(levelProgressPct)))}%</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>to {nextMacro.name ?? 'next tier'}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -620,6 +596,13 @@ export default function PlayerCard({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 8 }}>
+          {isAdmin && (
+            <button onClick={toggleFavorite} aria-pressed={isFavorited} title={isFavorited ? 'Unfavorite' : 'Favorite'} style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border)', background: isFavorited ? '#fef3c7' : 'var(--card-bg)', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={isFavorited ? 'gold' : 'none'} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+              </svg>
+            </button>
+          )}
           {(isAdmin || isOwner) ? (
             <button
               onClick={() => {
