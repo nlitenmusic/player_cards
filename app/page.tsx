@@ -280,8 +280,8 @@ export default function Home() {
     </div>
   );
 
-  // show onboarding/modal when user is not signed in, or signed in but hasn't chosen a role
-  const showAuthModal = !user || (user && hasRoleCookie === false && !document.cookie.includes('pc_coach_authed=1')) || showOnboardingParam;
+  // homepage is public; only show onboarding modal when explicitly requested
+  const showAuthModal = showOnboardingParam;
 
   if (error) return <div style={{ padding: 20 }}>Error: {error}</div>;
   if (!players) return (
