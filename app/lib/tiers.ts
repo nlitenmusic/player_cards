@@ -3,16 +3,18 @@ export const MICRO = 3;
 export const macroTiers = [
   { name: "Explorer", min: 0 },
   { name: "Rally Starter", min: 3 },
-  { name: "Emerging Player", min: 6 },
-  { name: "Developing Player", min: 9 },
-  { name: "Match Player", min: 12 },
-  { name: "Growth Player", min: 15 },
-  { name: "Competitor", min: 18 },
-  { name: "Advanced Competitor", min: 21 },
-  { name: "Performance Player", min: 24 },
-  { name: "Elite Performer", min: 27 },
-  { name: "College Performance", min: 30 },
-  { name: "Professional Track", min: 33 },
+  { name: "Emerging Player", min: 7 },
+  { name: "Developing Player", min: 10 },
+  { name: "Match Player", min: 13 },
+  { name: "Growth Player", min: 16 },
+  { name: "Competitor", min: 19 },
+  { name: "Advanced Competitor", min: 22 },
+  { name: "Performance Player", min: 25 },
+  { name: "Elite Performer", min: 28 },
+  { name: "College Performance", min: 31 },
+  { name: "Futures", min: 36 },
+  { name: "Professional", min: 41 },
+  { name: "Top Tour", min: 46 },
 ];
 
 // Removed discrete tierColorMap: tiers now derive color from a continuous
@@ -21,8 +23,8 @@ export const macroTiers = [
 // name or numeric rating.
 
 // Shared band base hues/lightness used across the UI for skill heat swatches
-export const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
-export const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
+export const BAND_BASE_HUES = [0, 28, 52, 140, 200, 235, 270];
+export const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 74, 84];
 
 export function computeBandColor(bandIdx: number, frac = 0.5) {
   const hue = BAND_BASE_HUES[bandIdx] ?? 200;
@@ -39,8 +41,10 @@ export function computeBandColor(bandIdx: number, frac = 0.5) {
 }
 
 export function getMacroTier(rating: number) {
+  const r = Number(rating) || 0;
+  const EPS = 1e-6;
   for (let i = macroTiers.length - 1; i >= 0; i--) {
-    if (rating >= macroTiers[i].min) return { ...macroTiers[i], index: i };
+    if (r + EPS >= macroTiers[i].min) return { ...macroTiers[i], index: i };
   }
   return { ...macroTiers[0], index: 0 };
 }
@@ -95,7 +99,8 @@ export function getTierColor(tierOrRating: string | number) {
         { min: 13, max: 18 },
         { min: 19, max: 24 },
         { min: 25, max: 30 },
-        { min: 31, max: 100 },
+        { min: 31, max: 40 },
+        { min: 41, max: 50 },
       ];
       const lookup = Math.floor(v);
       let bandIdx = BAND_RANGES.findIndex((b) => lookup >= b.min && lookup <= b.max);

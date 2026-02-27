@@ -26,8 +26,8 @@ export default function SkillBreakdown({ stats, player, sessionDate }: { stats: 
     });
   }, [stats]);
 
-  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 270];
-  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 84];
+  const BAND_BASE_HUES = [0, 28, 52, 140, 200, 235, 270];
+  const BAND_BASE_LIGHTNESS = [78, 74, 60, 72, 78, 74, 84];
 
   function computeBandColor(bandIdx: number, frac = 0.5) {
     const hue = BAND_BASE_HUES[bandIdx] ?? 200;
@@ -77,7 +77,7 @@ export default function SkillBreakdown({ stats, player, sessionDate }: { stats: 
 
           {/* Color key / legend for band meanings */}
           <div className="skill-breakdown__legend" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            {['Unstable','Conditional','Functional','Competitive','Advanced / Pro-Track','Tour Reference'].map((name, idx) => {
+            {['Unstable','Conditional','Functional','Competitive','Advanced / Pro-Track','Tour Challenger','Tour Elite'].map((name, idx) => {
               const { background, color } = computeBandColor(idx, 0.6);
               return (
                 <div key={name} className="skill-breakdown__legend-item" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#374151' }}>

@@ -1,7 +1,7 @@
 export type QuickFillResult = { c?: number | null; p?: number | null; a?: number | null; s?: number | null; t?: number | null };
 
 // Map of human labels to target scalars for the Functional band
-// Expanded band options covering the full spectrum (Unstable -> Tour Reference).
+// Expanded band options covering the full spectrum (Unstable -> Tour Challenger / Tour Elite).
 // Generate Low / Mid / High options for each canonical band range.
 const BAND_DEFINITIONS = [
   { name: 'Unstable', min: 0, max: 6, desc: 'Cannot consistently execute; frequent errors' },
@@ -9,7 +9,8 @@ const BAND_DEFINITIONS = [
   { name: 'Functional', min: 13, max: 18, desc: 'Sustains rallies vs peers with predictable miss patterns' },
   { name: 'Competitive', min: 19, max: 24, desc: 'Performance that holds up under match pressure' },
   { name: 'Advanced / Pro-Track', min: 25, max: 30, desc: 'Advanced performance approaching professional levels' },
-  { name: 'Tour Reference', min: 31, max: 100, desc: 'Elite / tour-level reference behavior' },
+  { name: 'Tour Challenger', min: 31, max: 40, desc: 'High-level tour-challenger behavior; weaponized and repeatable under match conditions' },
+  { name: 'Tour Elite', min: 41, max: 50, desc: 'Elite / tour-level reference behavior' },
 ];
 
 function makeTargets(min: number, max: number) {

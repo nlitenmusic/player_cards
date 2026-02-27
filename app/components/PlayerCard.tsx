@@ -84,6 +84,13 @@ export default function PlayerCard({
   const tierName = macro.name;
   const nextMacro = macroTiers[macro.index + 1] ?? macro;
   const nextTierLevel = nextMacro.min;
+  // Macro-level progress: percent from current macro tier min -> next macro tier min
+  const macroSpan = Math.max(1, (nextMacro.min - macro.min));
+  // compute raw percent, but force exact-min values to 0% (players starting a macro)
+  let macroProgressPct = Math.round(((ratingNum - macro.min) / macroSpan) * 100);
+  const EPS = 1e-6;
+  if (Number.isFinite(ratingNum) && ratingNum <= macro.min + EPS) macroProgressPct = 0;
+  macroProgressPct = Math.max(0, Math.min(100, macroProgressPct));
 
   // Use the numeric rating for heatmap color so overall matches per-skill heat mapping
   const rankColor = getTierColor(ratingNum);
@@ -465,19 +472,14 @@ export default function PlayerCard({
           <div style={{ marginTop: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: rankColor }}>{tierName}</div>
-                <div title="Court Sense Rating" style={{ fontSize: 12, fontWeight: 800, color: rankColor }}>{Number.isFinite(ratingNum) ? `${Number(ratingNum).toFixed(1)} CSR` : `${ratingNum} CSR`}</div>
+                <div title="Court Sense Rating" style={{ fontSize: 12, fontWeight: 800, color: rankColor }}>{Number.isFinite(ratingNum) ? `${Number(ratingNum).toFixed(2)} CSR` : `${ratingNum} CSR`}</div>
               </div>
             <div style={{ height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden', position: 'relative' }}>
-              {prevLevelProgressPct !== null && (
-                <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${Math.round(prevLevelProgressPct)}%`, pointerEvents: 'none', transition: 'width 300ms ease' }}>
-                  <div style={{ height: '100%', width: '100%', background: (sessionChangePct !== null && sessionChangePct > 0) ? 'rgba(16,165,130,0.22)' : (sessionChangePct !== null && sessionChangePct < 0) ? 'rgba(239,68,68,0.18)' : 'rgba(0,0,0,0.08)', borderRadius: 4 }} />
-                </div>
-              )}
-              <div style={{ width: `${Math.round(levelProgressPct)}%`, height: '100%', background: rankColor, transition: 'width 300ms ease' }} />
+              <div style={{ width: `${Math.round(macroProgressPct)}%`, height: '100%', background: rankColor, transition: 'width 300ms ease' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }} aria-hidden>
               <div title={`Progress to ${nextMacro.name ?? 'next tier'}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: rankColor, marginRight: 8 }}>{Math.max(0, Math.min(100, Math.round(levelProgressPct)))}%</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: rankColor, marginRight: 8 }}>{Math.max(0, Math.min(100, Math.round(macroProgressPct)))}%</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>to {nextMacro.name ?? 'next tier'}</div>
               </div>
             </div>

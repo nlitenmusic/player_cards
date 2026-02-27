@@ -446,7 +446,7 @@ export default function PlayerProgressPage({ params }: Props) {
         </div>
         <div>
           <div style={{ fontSize: 20, fontWeight: 800 }}>{player.first_name ?? ''} {player.last_name ?? ''}</div>
-          <div title="Court Sense Rating" style={{ fontSize: 13, color: '#666' }}>{macro.name} — {Number.isFinite(ratingNum) ? `${ratingNum.toFixed(1)} CSR` : `${ratingNum} CSR`} ({Math.round(levelProgressPct)}% towards {nextMacro.name})</div>
+          <div title="Court Sense Rating" style={{ fontSize: 13, color: '#666' }}>{macro.name} — {Number.isFinite(ratingNum) ? `${ratingNum.toFixed(2)} CSR` : `${ratingNum} CSR`} ({Math.round(levelProgressPct)}% towards {nextMacro.name})</div>
         </div>
       </div>
 

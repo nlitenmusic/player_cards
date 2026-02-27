@@ -51,6 +51,37 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [selectedArchetypeName, setSelectedArchetypeName] = useState<string | null>(null);
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [expandedAnchors, setExpandedAnchors] = useState<Record<string, boolean>>({});
+  const [advancedMode, setAdvancedMode] = useState<boolean>(false);
+  const [decisionPanelOpenBySkill, setDecisionPanelOpenBySkill] = useState<Record<string, boolean>>({});
+  const [pressureBySkill, setPressureBySkill] = useState<Record<string, string>>({});
+
+  function Collapsible({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+    const [open, setOpen] = useState<boolean>(defaultOpen);
+    return (
+      <div style={{ marginBottom: 10 }}>
+        <button
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            color: '#111',
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          <span style={{ fontSize: 12 }}>{open ? '▾' : '▸'}</span>
+          <span>{title}</span>
+        </button>
+        {open ? <div style={{ marginTop: 8 }}>{children}</div> : null}
+      </div>
+    );
+  }
 
   const showTimeout = useRef<number | null>(null);
   const hideTimeout = useRef<number | null>(null);
@@ -521,6 +552,20 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
     });
   }
 
+  function setOverallForSkill(skillLabel: string, overallNum: number | null) {
+    setRows((prev) => {
+      const out = [...prev];
+      const idx = out.findIndex(r => r.skill_type === skillLabel);
+      if (idx === -1) return prev;
+      const row = { ...out[idx] } as any;
+      // keep component fields null in stroke-first default; store overall in `t`
+      row.c = null; row.p = null; row.a = null; row.s = null;
+      row.t = overallNum == null ? null : Number(overallNum);
+      out[idx] = row;
+      return out;
+    });
+  }
+
   function computeAndApplyQuickFillForSkill(skillLabel: string, target: number) {
     setRows((prev) => {
         const out = [...prev];
@@ -706,8 +751,9 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: figmaFont, fontSize: figmaFontSize, lineHeight: figmaLineHeight, fontWeight: 500, letterSpacing: '0.04em' }}>
             {[
               { name: 'Competitive', range: '19–24', desc: 'Performance holds up in match play' },
-              { name: 'Advanced', range: '25–30', desc: 'Advanced, maintains under fatigue and tactics' },
-              { name: 'Tour Reference', range: '31+', desc: 'Elite, baseline for top-level play' },
+              { name: 'Advanced / Pro-Track', range: '25–30', desc: 'Advanced, maintains under fatigue and tactics' },
+              { name: 'Tour Challenger', range: '31–40', desc: 'High-level tour-challenger performance' },
+              { name: 'Tour Elite', range: '41–50', desc: 'Elite, baseline for top-level play' },
             ].map((b, i) => {
               const sw = computeBandColor(i + 3, 0.5);
               return (
@@ -722,7 +768,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
       </div>
     );
 
-    if (!hoveredBand) return defaultGrid;
+    if (!hoveredBand) return advancedMode ? null : defaultGrid;
 
     const sk = normalizeKey(hoveredBand.skill);
     const compKey = normalizeKey(hoveredBand.component);
@@ -810,6 +856,89 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this session (coach comments, injuries, drills)" style={{ width: '100%', minHeight: 80, padding: 8, marginTop: 6 }} />
             </div>
           )}
+          <div style={{ marginTop: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 12, color: '#6b7280', minWidth: 88 }}>Mode</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  role="switch"
+                  tabIndex={0}
+                  aria-checked={advancedMode}
+                  onClick={() => {
+                    // Prevent page jump by fixing body position during the DOM update
+                    try {
+                      const prevScroll = (typeof window !== 'undefined' && window.scrollY) ? window.scrollY : 0;
+                      const body = document.body;
+                      // lock scroll
+                      body.style.position = 'fixed';
+                      body.style.top = `-${prevScroll}px`;
+
+                      // toggle advanced mode and apply autofill when turning off
+                      if (advancedMode) {
+                        setRows((prev) => {
+                          const out = prev.map((r) => {
+                            const key = String(r.skill_type || '').trim().toLowerCase();
+                            const overall = r.t == null ? null : Number(r.t);
+                            const updated = { ...r } as any;
+                            if (overall != null && !Number.isNaN(overall)) {
+                              if (key === 'movement') {
+                                updated.t = Math.round(overall);
+                              } else {
+                                updated.c = Math.round(overall);
+                                updated.p = Math.round(overall);
+                                updated.a = Math.round(overall);
+                                updated.s = Math.round(overall);
+                                updated.t = Math.round(overall);
+                              }
+                            }
+                            return updated;
+                          });
+                          return out;
+                        });
+                      }
+                      setAdvancedMode((v) => !v);
+
+                      // restore scroll and body positioning after the DOM updates
+                      requestAnimationFrame(() => {
+                        try {
+                          body.style.position = '';
+                          body.style.top = '';
+                          window.scrollTo(0, prevScroll);
+                        } catch (e) {}
+                      });
+                    } catch (e) {
+                      // fallback: simple toggle
+                      setAdvancedMode((v) => !v);
+                    }
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.target as any).click(); } }}
+                  style={{
+                    width: 54,
+                    height: 30,
+                    borderRadius: 999,
+                    padding: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: advancedMode ? '#6b7280' : '#94a3b8',
+                    cursor: 'pointer',
+                    boxShadow: advancedMode ? 'inset 0 0 0 2px rgba(0,0,0,0.06)' : 'inset 0 0 0 1px rgba(0,0,0,0.04)',
+                    transition: 'background 180ms ease',
+                  }}
+                >
+                  <div style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 999,
+                    background: '#fff',
+                    transform: advancedMode ? 'translateX(24px)' : 'translateX(0px)',
+                    transition: 'transform 180ms ease',
+                    boxShadow: '0 1px 0 rgba(0,0,0,0.12)'
+                  }} />
+                </div>
+                <div style={{ fontSize: 13, color: '#111', fontWeight: 700 }}>{advancedMode ? 'Advanced Mode' : 'Standard Mode'}</div>
+              </div>
+            </div>
+          </div>
           {/* previous session chips removed for inline page layout */}
         </div>
 
@@ -844,13 +973,6 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                             <span tabIndex={-1} aria-hidden="true" style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
                           </BandTooltip>
                         </div>
-                        <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>
-                          Overall: {displayValue} {(band || fallbackBand) ? (<>
-                            <span style={{ fontWeight: 700, color: '#111', marginLeft: 6 }}>{(band || fallbackBand).name}</span>
-                            <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 6 }}>({formatRange((band || fallbackBand).min, (band || fallbackBand).max)})</span>
-                            <div style={{ marginTop: 4, color: '#374151', fontSize: 12, maxWidth: 420 }}>{(band || fallbackBand).description}</div>
-                          </>) : null}
-                        </div>
                       </div>
                     );
                   })()
@@ -861,7 +983,189 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
 
             <div className="skill-panel" style={{ marginTop: 12, background: '#F9F9F9', borderRadius: 12, padding: 12, position: 'relative' as any }}>
               <div style={{ position: 'relative' as any }}>
-                <>
+                  <>
+                  {/* Stroke-first overview cards when not in advanced mode */}
+                  {!advancedMode && (
+                    (() => {
+                      const skill = skillLabels[currentSkillIndex];
+                      try {
+                        const sk = normalizeKey(skill);
+                        const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+                        const bands = (skillEntry && skillEntry.overall) ? skillEntry.overall : [];
+                        const row = rows.find(r => r.skill_type === skill) as any;
+                        const currentT = row ? row.t : null;
+                        const selectedBand = currentT != null && !Number.isNaN(Number(currentT)) ? getBand(skill, 'overall', Math.floor(Number(currentT))) : (bands && bands.length ? bands[Math.floor(bands.length / 2)] : null);
+
+                        return (
+                          <div key={skill} style={{ background: '#fff', padding: 12, borderRadius: 8, border: '1px solid #eee', marginBottom: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+                                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                                    Current: <span style={{ fontWeight: 700, color: '#111' }}>{(selectedBand || {}).name ?? '—'}</span>
+                                    <span style={{ marginLeft: 8 }}>({currentT ?? '—'})</span>
+                                  </div>
+                                </div>
+
+                                {/* Single slider for fine-tuning overall (0-50) with band-segment visual */}
+                                {(() => {
+                                  const midDefault = bands && bands.length ? Math.round(((bands[0].min || 0) + (bands[bands.length - 1].max || 50)) / 2) : 18;
+                                  const sliderVal = currentT == null ? midDefault : Number(currentT);
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                      <input
+                                        type="range"
+                                        min={0}
+                                        max={50}
+                                        step={1}
+                                        value={sliderVal}
+                                        aria-label={`Overall ${skill} slider`}
+                                        onChange={(e) => {
+                                          const n = Number(e.target.value);
+                                          if (!Number.isNaN(n)) setOverallForSkill(skill, Math.round(n));
+                                        }}
+                                        style={{ width: '100%' }}
+                                      />
+
+                                      <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)' }}>
+                                        {bands.map((b: any, i: number) => {
+                                          const span = Math.max(1, (b.max - b.min));
+                                          const sw = computeBandColor(i, 0.5) || { background: '#e5e7eb' };
+                                          return <div key={i} style={{ flex: span, background: sw.background }} />;
+                                        })}
+                                      </div>
+
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280' }}>
+                                        {bands.map((b: any, i: number) => (
+                                          <div key={`tick-${i}`} style={{ textAlign: 'center', flex: Math.max(1, (b.max - b.min)) }}>{b.min}</div>
+                                        ))}
+                                        <div style={{ textAlign: 'center' }}>{bands[bands.length - 1].max}</div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+
+                            {
+                              // Band adjacency panel: show previous/current/next summaries and pressure selector
+                            }
+                            <div style={{ marginTop: 10 }}>
+                              {(() => {
+                                try {
+                                  const skill = skillLabels[currentSkillIndex];
+                                  const vLookup = currentT == null ? Math.round(((bands[0].min || 0) + (bands[bands.length - 1].max || 50)) / 2) : Math.floor(Number(currentT));
+                                  const idx = bands.findIndex((bb: any) => vLookup >= bb.min && vLookup <= bb.max);
+                                  const curIdx = idx === -1 ? Math.max(0, Math.floor(bands.length / 2)) : idx;
+                                  const prevBand = bands[curIdx - 1] || null;
+                                  const curBand = bands[curIdx] || null;
+                                  const nextBand = bands[curIdx + 1] || null;
+
+                                  const short = (b: any) => {
+                                    if (!b) return '';
+                                    return (b.description as string).split('\n').map((s: string) => s.trim()).join(' ').slice(0, 140);
+                                    if (Array.isArray(b.process) && b.process.length) return String(b.process[0]).slice(0, 140);
+                                    return '';
+                                  };
+
+                                  // compute fraction inside current band for gradient/pressure
+                                  const frac = curBand && vLookup != null ? Math.max(0, Math.min(1, (Number(vLookup) - curBand.min) / Math.max(1, (curBand.max - curBand.min)))) : 0.5;
+
+                                  // default pressure selection based on frac, can be overridden by coach
+                                  const inferredPressure = frac < 0.33 ? 'Breaks under moderate pressure' : (frac < 0.66 ? 'Breaks under sustained pressure' : 'Holds until high match leverage');
+                                  const selectedPressure = (pressureBySkill && pressureBySkill[skill]) || inferredPressure;
+
+                                  return (
+                                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                                        <div style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, background: '#fafafa', border: '1px solid #eee' }}>
+                                          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700 }}>← Leaning Toward {prevBand ? prevBand.name : '—'}</div>
+                                          <div style={{ marginTop: 6, color: '#374151', fontSize: 12 }}>{short(prevBand)}</div>
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, background: '#fff', border: '1px solid #eee' }}>
+                                          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700 }}>Current: {curBand ? curBand.name : '—'}</div>
+                                          <div style={{ marginTop: 6, color: '#374151', fontSize: 12 }}>{short(curBand)}</div>
+                                          <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}><strong>Breakdown requires:</strong> {selectedPressure}</div>
+                                          <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                                            {['Breaks under moderate pressure','Breaks under sustained pressure','Holds until high match leverage'].map((label) => (
+                                              <button key={label} onClick={() => setPressureBySkill((p) => ({ ...(p || {}), [skill]: label }))} style={{ padding: '6px 8px', background: selectedPressure === label ? '#111' : 'transparent', color: selectedPressure === label ? '#fff' : '#111', borderRadius: 6, border: '1px solid #e6e6e6', cursor: 'pointer', fontSize: 12 }}>{label.replace('Breaks under ', '').replace('Holds until ', '')}</button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, background: '#fafafa', border: '1px solid #eee' }}>
+                                          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700 }}>{nextBand ? nextBand.name : '—'} →</div>
+                                          <div style={{ marginTop: 6, color: '#374151', fontSize: 12 }}>{short(nextBand)}</div>
+                                        </div>
+                                      </div>
+
+                                      {/* Render subtle gradient on the slider band visualization by re-rendering band blocks with gradient for current band */}
+                                      <div style={{ display: 'flex', height: 8, borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)' }}>
+                                        {bands.map((b: any, i: number) => {
+                                          const span = Math.max(1, (b.max - b.min));
+                                          const base = computeBandColor(i, 0.5) || { background: '#e5e7eb' };
+                                          if (i === curIdx) {
+                                            const left = computeBandColor(i - 1 >= 0 ? i - 1 : i, 0.5)?.background || base.background;
+                                            const right = computeBandColor(i + 1 < bands.length ? i + 1 : i, 0.5)?.background || base.background;
+                                            return <div key={i} style={{ flex: span, background: `linear-gradient(90deg, ${left} 0%, ${base.background} 40%, ${right} 100%)` }} />;
+                                          }
+                                          return <div key={i} style={{ flex: span, background: base.background }} />;
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                } catch (e) { return null; }
+                              })()}
+                            </div>
+
+                            {selectedBand ? (
+                              (() => {
+                                const skill = skillLabels[currentSkillIndex];
+                                const decisionOpen = !!decisionPanelOpenBySkill[skill];
+                                const summary = typeof selectedBand.description === 'string' ? selectedBand.description : '';
+                                const shortSummary = summary.length > 220 ? summary.slice(0, 220).trim() + '…' : summary;
+                                return (
+                                  <div style={{ marginTop: 8, fontSize: 12, color: '#374151' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+                                      <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700 }}>Short Summary</div>
+                                        <div style={{ color: '#374151', marginTop: 6, maxWidth: 420 }}>{shortSummary}</div>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ marginTop: 8 }}>
+                                      <Collapsible title="What the process looks like" defaultOpen={false}>
+                                        {(selectedBand.process || []).map((s: any, idx: number) => <div key={`p-${idx}`}>• {s}</div>)}
+                                      </Collapsible>
+
+                                      <Collapsible title="When it breaks down" defaultOpen={false}>
+                                        {(selectedBand.breakdown || []).map((s: any, idx: number) => <div key={`b-${idx}`}>• {s}</div>)}
+                                      </Collapsible>
+
+                                      {selectedBand.outcomes && selectedBand.outcomes.length ? (
+                                        <Collapsible title="What results occur as a result" defaultOpen={false}>
+                                          {(selectedBand.outcomes || []).map((s: any, idx: number) => <div key={`o-${idx}`}>• {s}</div>)}
+                                        </Collapsible>
+                                      ) : null}
+
+                                      {selectedBand.anchors && selectedBand.anchors.length ? (
+                                        <Collapsible title="Anchors / common examples" defaultOpen={false}>
+                                          {(selectedBand.anchors || []).map((s: any, idx: number) => <div key={`a-${idx}`}>• {s}</div>)}
+                                        </Collapsible>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <div style={{ marginTop: 8, color: '#6b7280' }}>No narrative available</div>
+                            )}
+                          </div>
+                        );
+                      } catch (e) {
+                        return <div style={{ color: 'crimson' }}>Failed to render band narrative</div>;
+                      }
+                    })()
+                  )}
                 {/* Quick fill + Archetypes moved here so they're right below the skill switch */}
                 {(showQuickFill || !player?.id) && (
                   <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -936,7 +1240,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                   .components-carousel { -ms-overflow-style: none; scrollbar-width: none; }
                   .components-carousel::-webkit-scrollbar { display: none; }
                 ` }} />
-                <div ref={componentsCarouselRef} className="components-carousel" style={{ display: 'flex', width: '100%', gap: 12, overflowX: 'auto', paddingBottom: 0, WebkitOverflowScrolling: 'touch' as any, scrollSnapType: 'x mandatory' as any, paddingLeft: 56, paddingRight: 56, boxSizing: 'border-box' as any, scrollPaddingInline: '56px' as any, alignItems: 'flex-start' as any }}>
+                <div ref={componentsCarouselRef} className="components-carousel" style={{ display: advancedMode ? 'flex' : 'none', width: '100%', gap: 12, overflowX: 'auto', paddingBottom: 0, WebkitOverflowScrolling: 'touch' as any, scrollSnapType: 'x mandatory' as any, paddingLeft: 56, paddingRight: 56, boxSizing: 'border-box' as any, scrollPaddingInline: '56px' as any, alignItems: 'flex-start' as any }}>
                   { (['c','p','a','s','t'] as ComponentKey[])
                     .filter((k) => !(normalizeKey(skillLabels[currentSkillIndex]) === 'movement' && ['c','p','a','s'].includes(k as string)))
                     .map((compKey, compIndex) => {
@@ -1052,19 +1356,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
             </div>
           </div>
 
-          <div style={{ width: '100%', boxSizing: 'border-box', maxWidth: 359 }}>
-            <div className="band-key-panel" style={{ boxSizing: 'border-box', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', gap: 32, position: 'relative', background: '#D9D9D9', border: '2.65693px solid rgba(0,0,0,0.23)', borderRadius: 10 }}
-              onMouseEnter={() => { clearHideTimer(); }}
-              onMouseLeave={() => { scheduleHide(); }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: 0, width: 337 }}>
-                {/* dynamic band panel is rendered inside the Figma-styled gray container */}
-                <div style={{ marginTop: 6, width: '100%' }}>
-                  {renderBandPanelContent()}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Removed duplicate band key panel (advancedMode-specific) per UX request */}
         </div>
 
         {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
