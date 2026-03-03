@@ -1110,9 +1110,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                           <div style={{ fontWeight: 700, fontSize: 20 }}>{skillLabel}</div>
-                          <BandTooltip value={v ?? ''} skill={skillLabel} component={'overall'} onHover={handleHover}>
-                            <span tabIndex={-1} aria-hidden="true" style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                          </BandTooltip>
+                          
                           <div aria-live="polite" style={{ marginLeft: 8, fontWeight: 700, fontSize: 16, color: '#111' }}>{displayValue ? displayValue : '—'}</div>
                         </div>
                       </div>
@@ -1142,12 +1140,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                           <div key={skill} style={{ background: '#fff', padding: 12, borderRadius: 8, border: '1px solid #eee', marginBottom: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
-                                  <div style={{ fontSize: 12, color: '#6b7280' }}>
-                                    Current: <span style={{ fontWeight: 700, color: '#111' }}>{(selectedBand || {}).name ?? '—'}</span>
-                                    <span style={{ marginLeft: 8 }}>({currentT ?? '—'})</span>
-                                  </div>
-                                </div>
+                                {/* Removed inline 'Current' summary to preserve vertical space */}
 
                                 {/* Vertical band-region list (Standard Mode) rendered in a scrollable 3-band viewport */}
                                 {(() => {
@@ -1224,7 +1217,30 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                   <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                                       <div style={{ fontWeight: 700, fontSize: 15 }}>{b.name} <span style={{ fontSize: 12, color: isSelected ? heat.color : '#6b7280', marginLeft: 6 }}>({formatRange(b.min, b.max)})</span></div>
-                                                      <div style={{ fontSize: 12, color: isSelected ? heat.color : '#6b7280' }} />
+                                                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                        {(isSelected || (displayNum >= b.min && displayNum <= b.max)) ? (
+                                                          <div
+                                                            role="group"
+                                                            aria-label={`Overall value for ${b.name}`}
+                                                            style={{
+                                                              display: 'flex',
+                                                              alignItems: 'center',
+                                                              gap: 8,
+                                                              padding: '4px 8px',
+                                                              borderRadius: 14,
+                                                              background: isSelected ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
+                                                              color: isSelected ? heat.color : '#374151',
+                                                              fontSize: 12,
+                                                              boxShadow: '0 1px 0 rgba(0,0,0,0.02)'
+                                                            }}
+                                                            onClick={(e) => { e.stopPropagation(); }}
+                                                          >
+                                                            <button aria-label="Decrease overall" className="stat-chev" onClick={(e) => { e.stopPropagation(); changeOverallBy(skill, -1); }} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: 'inherit' }}>‹</button>
+                                                            <div style={{ fontWeight: 700, minWidth: 30, textAlign: 'center' }}>{displayNum}</div>
+                                                            <button aria-label="Increase overall" className="stat-chev" onClick={(e) => { e.stopPropagation(); changeOverallBy(skill, 1); }} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 16, color: 'inherit' }}>›</button>
+                                                          </div>
+                                                        ) : null}
+                                                      </div>
                                                     </div>
                                                     {(() => {
                                                       try {
@@ -1257,13 +1273,13 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                             {refusesText ? <Collapsible title="Refuses" preview={makePreview(refusesText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(refusesText) ? refusesText.join('\n') : refusesText}</div></div></Collapsible> : null}
                                                             {anchorsForBand && anchorsForBand.length ? (
                                                               <Collapsible title="Anchors" preview={makePreview(anchorsForBand[0])} defaultOpen={false}>
-                                                                <div style={{ maxHeight: Math.max(60, innerMax), overflowY: 'auto' as any }}>
-                                                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                                                    {anchorsForBand.map((a, ai) => (
-                                                                      <button key={ai} onClick={(e) => { e.stopPropagation(); }} style={{ padding: '6px 8px', borderRadius: 6, border: isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 12, marginRight: 8, marginBottom: 8 }}>{a}</button>
-                                                                    ))}
-                                                                  </div>
-                                                                </div>
+                                                                <div style={{ maxHeight: Math.max(30, Math.floor(innerMax / 2)), overflowY: 'auto' as any, marginBottom: 8 }}>
+                                                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                                      {anchorsForBand.map((a, ai) => (
+                                                                        <button key={ai} onClick={(e) => { e.stopPropagation(); }} style={{ padding: '6px 8px', borderRadius: 6, border: isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 12, marginRight: 8, marginBottom: 6 }}>{a}</button>
+                                                                      ))}
+                                                                     </div>
+                                                                   </div>
                                                               </Collapsible>
                                                             ) : null}
                                                           </div>
@@ -1271,13 +1287,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                       } catch (e) { return null; }
                                                     })()}
                                                   </div>
-                                                  {isSelected ? (
-                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, width: '100%', marginTop: 8 }}>
-                                                      <button aria-label="Decrease overall" className="stat-chev" onClick={(e) => { e.stopPropagation(); changeOverallBy(skill, -1); }} style={{ width: 40, height: 32, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18 }}>‹</button>
-                                                      <div style={{ fontWeight: 700 }}>{displayNum}</div>
-                                                      <button aria-label="Increase overall" className="stat-chev" onClick={(e) => { e.stopPropagation(); changeOverallBy(skill, 1); }} style={{ width: 40, height: 32, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18 }}>›</button>
-                                                    </div>
-                                                  ) : null}
+                                                  {/* Numeric toggle moved into header so it's always visible */}
                                                 </div>
                                               );
                                             })}
@@ -1389,9 +1399,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{componentLabels[ck]}</div>
                           <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <BandTooltip value={value ?? ''} skill={skillLabel} component={String(ck)} onHover={handleHover}>
-                              <span tabIndex={-1} aria-hidden="true" style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
-                            </BandTooltip>
+                            
                           </div>
                         </div>
 

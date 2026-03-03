@@ -49,10 +49,10 @@ export async function POST(req: Request) {
 
     // build session_stats rows with components c/p/a/s/t
     const validSkills = ["serve","return","forehand","backhand","volley","overhead","movement"];
-    function toNumOrZero(v: any) {
-      if (v == null) return 0;
+    function toNullableNumber(v: any) {
+      if (v == null) return null;
       const n = Number(v);
-      return Number.isFinite(n) ? n : 0;
+      return Number.isFinite(n) ? n : null;
     }
 
     const statsRows = stats_components.map((r: any) => {
@@ -65,11 +65,11 @@ export async function POST(req: Request) {
         session_id,
         player_id,
         skill_type: skill,
-        c: toNumOrZero(r.c),
-        p: toNumOrZero(r.p),
-        a: toNumOrZero(r.a),
-        s: toNumOrZero(r.s),
-        t: toNumOrZero(r.t),
+        c: toNullableNumber(r.c),
+        p: toNullableNumber(r.p),
+        a: toNullableNumber(r.a),
+        s: toNullableNumber(r.s),
+        t: toNullableNumber(r.t),
       };
     });
 

@@ -2967,9 +2967,22 @@ export function getBand(skill: string, component: string, value: number) {
       const mid = (b.max >= 50) ? 38 : Math.round((b.min + b.max) / 2);
       const process = Array.isArray((b as any).process) ? (b as any).process : [];
       const breakdown = Array.isArray((b as any).breakdown) ? (b as any).breakdown : [];
+      // If explicit outcomes exist, use them. Otherwise derive a list
+      // from the legacy `description` by splitting into logical lines.
+      function splitDescriptionToLines(input: any): string[] {
+        const s = String(input || '').trim();
+        if (!s) return [];
+        // Preserve existing manual newlines first
+        const nlLines = s.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        if (nlLines.length > 1) return nlLines;
+        // Otherwise split into sentences while keeping punctuation
+        const sentences = s.split(/(?<=[.?!])\s+/).map((l) => l.trim()).filter(Boolean);
+        return sentences.length ? sentences : [s];
+      }
+
       const outcomes = Array.isArray((b as any).outcomes)
         ? (b as any).outcomes
-        : ((b as any).description ? [String((b as any).description)] : []);
+        : ((b as any).description ? splitDescriptionToLines((b as any).description) : []);
       const refuses = Array.isArray((b as any).refuses) ? (b as any).refuses : [];
 
       return {
