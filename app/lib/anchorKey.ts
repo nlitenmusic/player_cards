@@ -131,7 +131,9 @@ const anchors: Record<string, Record<string, string[][]>> = {
 
   backhand: {
     overall: [
-      ["Erratic preparation and weak defensive options.", "Slow recovery after backhand exchanges.", "Often forced to defend."],
+      [
+        "Rally at 2–2.\nOpponent directs ball to backhand.\nPlayer:\nMisses backhand into the net\nOR\nBlocks backhand softly down the middle\nOpponent steps in and attacks\nOR\nHits one clean backhand\nOpponent mishits next ball\nPoint won through opponent error or a single clean contact, not through repeatable backhand structure, depth, or directional control."
+      ],
       ["Works in calm settings but loses depth and reliability under pressure.", "Struggles to create offense consistently.", "Needs improved timing."] ,
       ["Reliable for rallies with occasional offensive shots.", "Solid technique, occasional shortball finishing.", "Can sustain rallies effectively."],
       ["Compact, reliable backhand that supports aggression and depth.", "Maintains under pressure and creates offensive chances.", "Good control and placement."],
@@ -142,23 +144,53 @@ const anchors: Record<string, Record<string, string[][]>> = {
 
   volley: {
     overall: [
-      ["Poor platform and inconsistent hand control at the net.", "Frequently beaten on basic volleys.", "Struggles to finish short points."],
-      ["Executes simple volleys when stationary but falters on the move.", "Timing and economy break down under pressure.", "Needs to improve compactness."],
-      ["Reliable net play with reasonable touch and balance.", "Can finish short points when positioned correctly.", "Recovery is generally adequate."],
-      ["Compact, controlled volleys that can finish or redirect pace in matches.", "Consistent placement and touch under pressure.", "Often wins short net exchanges."],
-      ["Varied touch and punch with precise placement to finish points.", "Conserves energy while finishing reliably.", "High-level net control."],
-      ["Exceptional volley control: instant touch, timing and domination at the net.", "Wins net exchanges consistently.", "Elite-level finishing ability."]
+      [
+        "Rally at 2–2.\nPlayer approaches the net.\nOpponent hits passing attempt.\nPlayer:\nMisses first volley into the net\nOR\nBlocks volley softly down the middle\nOpponent passes on next ball\nOR\nVolley clips frame and drops in\nOpponent misses next shot\nPoint won through opponent error or accidental contact, not through repeatable volley structure, positioning, or intentional placement."
+      ],
+      [
+        "Rally at 2–2.\nOpponent hits a moderate-paced approach shot.\nPlayer steps in and executes a firm volley. Next ball comes slightly faster or angled; player attempts an aggressive angle which drifts long or clips net; opponent takes advantage. Points won at this level are usually because opponent misjudges or because the volley is executed within comfort zone and controlled placement."
+      ],
+      [
+        "Rally at 3–3.\nPlayer steps in and executes firm volleys. Next ball comes slightly faster or angled; player adjusts and redirects with controlled placement; opponent defends short; player steps in and finishes. Point won through controlled volley + deliberate construction of point."
+      ],
+      [
+        "Game at 4–3. Competitive player: hits solid approach to backhand; closes with balanced split step; controls first volley deep crosscourt; opponent stretches and floats reply; finishes with controlled overhead or put-away volley. Point won through structured net entry + controlled first volley."
+      ],
+      [
+        "Game at 4–4, approaching net. Advanced player: hits solid approach to opponent’s backhand; executes controlled first volley deep crosscourt; opponent stretches and defends; follows with a decisive second volley or put-away; point won through structured net positioning + volley depth + tactical placement, not just one big shot."
+      ],
+      [
+        "Game at 4–4: Player approaches and closes with balanced split step; controls first volley deep crosscourt; opponent reaches but floats defensive reply; player finishes with controlled put-away or overhead; point won through structured net entry + first volley control, not a single heroic swing."
+      ],
+      [
+        "Game at 5–5: Player approaches, splits, and controls first volley deep crosscourt; opponent stretches, defensive reply floats; player adjusts instantly, finishing with elite put-away or overhead; net play remains dominant across multiple points."
+      ],
     ],
   },
 
   overhead: {
     overall: [
-      ["Footwork and setup are late or awkward; many miscues.", "Often mistimes overheads and gives easy points.", "Struggles with on-the-run overheads."],
-      ["Can complete overheads in calm conditions but breaks under pace.", "Setup and economy degrade when rushed.", "Needs better positioning."],
-      ["Reliable overheads with solid setup and contact in routine situations.", "Effective for finishing easy lobs.", "Conserves energy."],
-      ["Efficient positioning and compact swing producing consistent overhead winners.", "Finishes points with authority in match play.", "Rarely miscues."],
-      ["Optimized setup and timing producing authoritative overheads under pressure.", "High success rate on difficult lobs.", "Very consistent on the run."],
-      ["Near-perfect overheads: automatic setup, compact mechanics and high finish rate.", "Dominates overhead exchanges.", "Elite-level reliability."]
+      [
+        "Rally at 3–3.\nOpponent hits a defensive lob.\nPlayer moves back under the ball.\nPlayer:\nSwings late and misses completely\nOR\nHits overhead into the net\nOR\nContacts high and behind the head — ball sails long\nOR\nPops overhead short into mid-court\nOpponent passes or resets rally\nPoint is won only when the opponent misses after a weak overhead or misjudged lob — not through controlled positioning, timing, or repeatable overhead mechanics."
+      ],
+      [
+        "Rally at 2–2.\nOpponent hits a moderate lob.\nPlayer:\nSteps in and executes a firm overhead\n\nNext lob comes slightly higher or wider\n\nPlayer attempts aggressive placement\n\nBall drifts long or clips net\n\nOpponent takes advantage\n\nPoints won off overhead at this level are usually because opponent misjudges or mishits, or because the overhead is executed within comfort zone and controlled placement."
+      ],
+      [
+        "Rally at 3–3.\nPlayer steps in and executes firm overheads. Next lob comes slightly higher or angled; player adjusts and redirects with controlled placement; opponent defends short; player steps in and finishes. Point won through controlled overhead + deliberate construction of point."
+      ],
+      [
+        "Game at 5–4. Competitive player: closes net after solid approach; opponent throws up defensive lob; player adjusts efficiently and sets feet; executes controlled overhead to open court; opponent reaches but cannot recover; point won through proper positioning + composed overhead execution."
+      ],
+      [
+        "Rally at 4–4. Advanced player: opponent hits defensive lob; moves efficiently under the ball; executes controlled overhead to open court; follows with neutral or offensive positioning; point won through positioning + composed overhead execution, not just a single reactionary strike."
+      ],
+      [
+        "Player tracks opponent lob, steps in, and executes deep offensive overhead; opponent stretches; return floats; player finishes point cleanly inside court; point won through overhead consistency + pressure layering, not just one highlight shot."
+      ],
+      [
+        "Player steps in on lob, prepares instantly, and executes deep, precise overhead; opponent stretches, defensive reply floats; player finishes cleanly; multiple points won consecutively; net play remains dominant across multiple points, leveraging elite pace, disguise, and precision."
+      ],
     ],
   },
 

@@ -15,8 +15,9 @@ export function middleware(req: NextRequest) {
 
   // Only guard these top-level routes (and subpaths). Do NOT protect the
   // sign-in page itself (`/account`) to avoid redirect loops when middleware
-  // redirects unauthenticated users to the login page.
-  const shouldProtect = pathname.startsWith('/coach') || pathname.startsWith('/admin') || pathname.startsWith('/account/')
+  // redirects unauthenticated users to the login page. Note: `/admin` uses
+  // its own internal password flow and should remain accessible.
+  const shouldProtect = pathname.startsWith('/coach') || pathname.startsWith('/account/')
   if (!shouldProtect) return NextResponse.next()
 
   // Allow API calls and static assets through
@@ -43,5 +44,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/coach/:path*', '/admin/:path*', '/account/:path*']
+  matcher: ['/coach/:path*', '/account/:path*', '/account']
 }

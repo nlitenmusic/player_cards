@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useRef, useMemo, useImperativeHandle } from "react";
+import React, { useEffect, useState, useRef, useMemo, useImperativeHandle, useLayoutEffect } from "react";
 import BandTooltip from "./Leaderboards/BandTooltip";
 import referenceKey, { normalizeKey, getBand } from "../lib/referenceKey";
 import { computeBandColor } from "../lib/tiers";
@@ -53,14 +53,14 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [expandedAnchors, setExpandedAnchors] = useState<Record<string, boolean>>({});
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [decisionPanelOpenBySkill, setDecisionPanelOpenBySkill] = useState<Record<string, boolean>>({});
-  const [pressureBySkill, setPressureBySkill] = useState<Record<string, string>>({});
 
-  function Collapsible({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  function Collapsible({ title, children, defaultOpen = false, preview }: { title: string; children: React.ReactNode; defaultOpen?: boolean; preview?: string }) {
     const [open, setOpen] = useState<boolean>(defaultOpen);
     return (
       <div style={{ marginBottom: 10 }}>
         <button
-          onClick={() => setOpen(!open)}
+          onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setOpen((o) => !o); e.preventDefault(); } }}
           aria-expanded={open}
           style={{
             display: 'flex',
@@ -77,8 +77,9 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
         >
           <span style={{ fontSize: 12 }}>{open ? '▾' : '▸'}</span>
           <span>{title}</span>
+          {preview ? <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8, maxWidth: 240, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2 as any, WebkitBoxOrient: 'vertical' as any, lineHeight: '1.2em' }}>{preview}</span> : null}
         </button>
-        {open ? <div style={{ marginTop: 8 }}>{children}</div> : null}
+        {open ? <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>{children}</div> : null}
       </div>
     );
   }
@@ -91,6 +92,18 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const modalRef = useRef<HTMLDivElement | null>(null);
   const componentsCarouselRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const adjDescriptionsRef = useRef<HTMLDivElement | null>(null);
+  const [adjHeight, setAdjHeight] = useState<number>(200);
+  const nextCardRef = useRef<HTMLDivElement | null>(null);
+  const curCardRef = useRef<HTMLDivElement | null>(null);
+  const prevCardRef = useRef<HTMLDivElement | null>(null);
+  const [sliderTop, setSliderTop] = useState<number | null>(null);
+  const [sliderSpan, setSliderSpan] = useState<number | null>(null);
+  // Fixed card/viewport sizing for adjacent band list so slider/ticks remain stable
+  const BAND_CARD_HEIGHT = 280; // px per band card (increased to fit chip + text)
+  const VISIBLE_BAND_COUNT = 3; // show three bands at a time
+  const BAND_GAP = 8; // gap between band cards in px
+  const bandItemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [activeComponentIndex, setActiveComponentIndex] = useState<number>(0);
   function scrollComponentsBy(pixelDelta: number) {
     // kept for backward compatibility but prefer goToComponentIndex
@@ -122,6 +135,34 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
       window.removeEventListener('resize', compute);
     };
   }, [componentsCarouselRef.current]);
+
+  // Keep slider/tick column sized to the adjacency viewport (fixed number of visible cards)
+  useLayoutEffect(() => {
+    const el = adjDescriptionsRef.current;
+    if (!el) return;
+    const measure = () => {
+      // compute a stable viewport height that shows VISIBLE_BAND_COUNT cards
+      const h = (BAND_CARD_HEIGHT * VISIBLE_BAND_COUNT) + (BAND_GAP * (VISIBLE_BAND_COUNT - 1));
+      setAdjHeight(h);
+      setSliderTop(0);
+      setSliderSpan(h);
+    };
+    measure();
+    let ro: ResizeObserver | null = null;
+    try {
+      ro = new ResizeObserver(() => measure());
+      ro.observe(el);
+    } catch (e) {
+      window.addEventListener('resize', measure);
+    }
+    return () => {
+      try { if (ro) ro.disconnect(); } catch (e) {}
+      window.removeEventListener('resize', measure);
+    };
+  }, [adjDescriptionsRef.current]);
+
+  // Center the current band card in the scrollable adjacency viewport when skill or rows change
+  
 
   
 
@@ -197,6 +238,87 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   }, [rows]);
 
   const [currentSkillIndex, setCurrentSkillIndex] = useState<number>(0);
+
+  // Center the current band card in the scrollable adjacency viewport when skill or rows change
+  useEffect(() => {
+    try {
+      const skill = skillLabels[currentSkillIndex];
+      const sk = normalizeKey(skill);
+      const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+      const bands = (skillEntry && skillEntry.overall) ? skillEntry.overall : [];
+      const row = rows.find(r => r.skill_type === skill) as any;
+      const currentT = row ? row.t : null;
+      const vLookup = currentT == null ? Math.round(((bands[0]?.min || 0) + (bands[bands.length - 1]?.max || 50)) / 2) : Math.floor(Number(currentT));
+      const idx = bands.findIndex((bb: any) => vLookup >= bb.min && vLookup <= bb.max);
+      const curIdx = idx === -1 ? Math.max(0, Math.floor(bands.length / 2)) : idx;
+      const container = adjDescriptionsRef.current;
+      const node = bandItemRefs.current[curIdx];
+      if (container && node) {
+        const scrollTo = Math.max(0, node.offsetTop - (container.clientHeight / 2) + (node.clientHeight / 2));
+        try { container.scrollTo({ top: scrollTo, behavior: 'smooth' }); } catch (e) { container.scrollTop = scrollTo; }
+      }
+    } catch (e) {}
+  }, [currentSkillIndex, rows]);
+
+  // Scroll-snap + center detection: update overall value when user scrolls the adjacency list
+  useEffect(() => {
+    const container = adjDescriptionsRef.current;
+    if (!container) return;
+
+    let raf = 0;
+    let endTimer: number | null = null;
+
+    const computeCentered = () => {
+      try {
+        const centerY = container.scrollTop + (container.clientHeight / 2);
+        let closest = -1;
+        let closestDist = Infinity;
+        for (let i = 0; i < (bandItemRefs.current?.length || 0); i++) {
+          const node = bandItemRefs.current[i];
+          if (!node) continue;
+          const nodeCenter = node.offsetTop + (node.clientHeight / 2);
+          const d = Math.abs(nodeCenter - centerY);
+          if (d < closestDist) { closestDist = d; closest = i; }
+        }
+        if (closest !== -1) {
+          // set overall to the midpoint of that band
+          const skill = skillLabels[currentSkillIndex];
+          const sk = normalizeKey(skill);
+          const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+          const bands = (skillEntry && skillEntry.overall) ? skillEntry.overall : [];
+          const band = bands[closest];
+          if (band) {
+            const midpoint = Math.round((band.min + band.max) / 2);
+            // Do not overwrite if this skill already has a value
+            const existing = rows.find(r => r.skill_type === skill) as any;
+            if (!existing || existing.t == null) {
+              setOverallForSkill(skill, midpoint);
+            }
+          }
+        }
+      } catch (e) {}
+    };
+
+    function onScroll() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        // wait until scrolling stops to snap update; but let CSS scroll-snap handle actual snapping
+        if (endTimer) { window.clearTimeout(endTimer); endTimer = null; }
+        endTimer = window.setTimeout(() => {
+          computeCentered();
+          endTimer = null;
+        }, 120);
+      });
+    }
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    // Do not auto-run on mount to avoid overwriting loaded rows; only update after user scrolls.
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      if (endTimer) window.clearTimeout(endTimer);
+      container.removeEventListener('scroll', onScroll as any);
+    };
+  }, [adjDescriptionsRef.current, bandItemRefs.current, currentSkillIndex, rows]);
 
   useEffect(() => {
     // Preserve the carousel scroll position when switching skills.
@@ -605,6 +727,25 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
     });
   }
 
+  function changeOverallBy(skillLabel: string, delta: number) {
+    setRows((prev) => {
+      const out = [...prev];
+      const skillIndex = out.findIndex(r => r.skill_type === skillLabel);
+      if (skillIndex === -1) return prev;
+
+      const row = out[skillIndex];
+      const cur = row.t;
+      const base = cur == null || Number.isNaN(Number(cur)) ? 0 : Number(cur);
+      let next = Math.round(base) + delta;
+      next = Math.max(0, Math.min(50, next));
+      const updated = { ...row } as any;
+      updated.c = null; updated.p = null; updated.a = null; updated.s = null;
+      updated.t = next;
+      out[skillIndex] = updated;
+      return out;
+    });
+  }
+
   const submit = async () => {
     setError(null);
 
@@ -972,6 +1113,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                           <BandTooltip value={v ?? ''} skill={skillLabel} component={'overall'} onHover={handleHover}>
                             <span tabIndex={-1} aria-hidden="true" style={{ fontSize: 14, color: '#6b7280', cursor: 'help' }}>ⓘ</span>
                           </BandTooltip>
+                          <div aria-live="polite" style={{ marginLeft: 8, fontWeight: 700, fontSize: 16, color: '#111' }}>{displayValue ? displayValue : '—'}</div>
                         </div>
                       </div>
                     );
@@ -1007,158 +1149,150 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                   </div>
                                 </div>
 
-                                {/* Single slider for fine-tuning overall (0-50) with band-segment visual */}
+                                {/* Vertical band-region list (Standard Mode) rendered in a scrollable 3-band viewport */}
                                 {(() => {
-                                  const midDefault = bands && bands.length ? Math.round(((bands[0].min || 0) + (bands[bands.length - 1].max || 50)) / 2) : 18;
-                                  const sliderVal = currentT == null ? midDefault : Number(currentT);
-                                  return (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                      <input
-                                        type="range"
-                                        min={0}
-                                        max={50}
-                                        step={1}
-                                        value={sliderVal}
-                                        aria-label={`Overall ${skill} slider`}
-                                        onChange={(e) => {
-                                          const n = Number(e.target.value);
-                                          if (!Number.isNaN(n)) setOverallForSkill(skill, Math.round(n));
-                                        }}
-                                        style={{ width: '100%' }}
-                                      />
+                                  try {
+                                    const skill = skillLabels[currentSkillIndex];
+                                    const sk = normalizeKey(skill);
+                                    const skillEntry = (referenceKey as any)[sk] || (referenceKey as any)[sk.replace(/\s+/g, '')];
+                                    const bands = (skillEntry && skillEntry.overall) ? skillEntry.overall : [];
+                                    const row = rows.find(r => r.skill_type === skill) as any;
+                                    const currentT = row ? row.t : null;
 
-                                      <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)' }}>
-                                        {bands.map((b: any, i: number) => {
-                                          const span = Math.max(1, (b.max - b.min));
-                                          const sw = computeBandColor(i, 0.5) || { background: '#e5e7eb' };
-                                          return <div key={i} style={{ flex: span, background: sw.background }} />;
-                                        })}
+                                    return (
+                                      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+                                        <div style={{ width: '150%', overflowX: 'auto' }}>
+                                           <div
+                                            ref={adjDescriptionsRef}
+                                            style={{
+                                              height: `${adjHeight}px`,
+                                              minHeight: `${adjHeight}px`,
+                                              maxHeight: `${adjHeight}px`,
+                                              boxSizing: 'border-box',
+                                              overflowY: 'auto',
+                                              padding: 12,
+                                              paddingRight: 8,
+                                              scrollSnapType: 'y mandatory',
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              gap: BAND_GAP,
+                                              overscrollBehaviorY: 'contain' as any,
+                                            }}
+                                          >
+                                            {bands.map((b: any, i: number) => {
+                                              const heat = computeBandColor(i, 0.5);
+                                              const isSelected = currentT != null && Number(currentT) >= b.min && Number(currentT) <= b.max;
+                                              const midpoint = Math.round((b.min + b.max) / 2);
+                                              const skillRowForDisplay = rows.find(r => r.skill_type === skill) as any;
+                                              let computedOverall: number | null = null;
+                                              if (skillRowForDisplay) {
+                                                const keyForDisplay = normalizeKey(skill);
+                                                if (keyForDisplay === 'movement') {
+                                                  computedOverall = skillRowForDisplay.t == null ? null : Number(skillRowForDisplay.t);
+                                                } else {
+                                                  const presentVals = [skillRowForDisplay.c, skillRowForDisplay.p, skillRowForDisplay.a, skillRowForDisplay.s, skillRowForDisplay.t].filter((x) => x != null).map((x) => Number(x));
+                                                  if (presentVals.length) computedOverall = presentVals.reduce((a: number, b: number) => a + b, 0) / presentVals.length;
+                                                }
+                                              }
+                                              const displayNum = computedOverall == null || Number.isNaN(Number(computedOverall)) ? (currentT ?? midpoint) : Math.round(Number(computedOverall));
+                                              return (
+                                                <div
+                                                  key={`band-reg-${b.min}-${b.max}`}
+                                                  ref={(el) => { bandItemRefs.current[i] = el; }}
+                                                  style={{
+                                                      height: BAND_CARD_HEIGHT,
+                                                      minHeight: BAND_CARD_HEIGHT,
+                                                      maxHeight: BAND_CARD_HEIGHT,
+                                                      boxSizing: 'border-box',
+                                                      scrollSnapAlign: 'center',
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      flex: '0 0 auto',
+                                                      alignItems: 'stretch',
+                                                      justifyContent: 'flex-start',
+                                                      gap: 8,
+                                                      padding: 12,
+                                                      borderRadius: 8,
+                                                      border: isSelected ? '2px solid rgba(0,0,0,0.08)' : '1px solid #e6e6e6',
+                                                      background: isSelected ? heat.background : '#fff',
+                                                      color: isSelected ? heat.color : '#111',
+                                                      cursor: 'pointer',
+                                                      overflow: 'hidden',
+                                                    }}
+                                                  onClick={() => setOverallForSkill(skill, midpoint)}
+                                                >
+                                                  <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                                      <div style={{ fontWeight: 700, fontSize: 15 }}>{b.name} <span style={{ fontSize: 12, color: isSelected ? heat.color : '#6b7280', marginLeft: 6 }}>({formatRange(b.min, b.max)})</span></div>
+                                                      <div style={{ fontSize: 12, color: isSelected ? heat.color : '#6b7280' }} />
+                                                    </div>
+                                                    {(() => {
+                                                      try {
+                                                        const bandSrc = getBand(skill, 'overall', midpoint) || {};
+                                                        const anchorsForBand = Array.isArray((bandSrc as any).anchors) ? (bandSrc as any).anchors as string[] : [];
+                                                        const processText = (bandSrc as any).process || (bandSrc as any).process_description || '';
+                                                        const breakdownText = (bandSrc as any).breakdown || '';
+                                                        const resultText = (bandSrc as any).result || (bandSrc as any).outcomes || '';
+                                                        const refusesText = (bandSrc as any).refuses || '';
+                                                        const makePreview = (v: any) => {
+                                                          if (!v) return '';
+                                                          if (Array.isArray(v)) return String(v[0] ?? '').replace(/\s+/g, ' ').trim();
+                                                          return String(v).split('\n')[0].replace(/\s+/g, ' ').trim();
+                                                        };
+                                                        const getFirstSentence = (v: any) => {
+                                                          if (!v) return '';
+                                                          const src = Array.isArray(v) ? String(v[0] ?? '') : String(v);
+                                                          const s = src.trim();
+                                                          const idx = s.search(/[.!?]/);
+                                                          if (idx !== -1) return s.slice(0, idx + 1).replace(/\s+/g, ' ').trim();
+                                                          const nl = s.split('\n')[0];
+                                                          return nl.replace(/\s+/g, ' ').trim();
+                                                        };
+                                                        const innerMax = Math.max(80, BAND_CARD_HEIGHT - 140);
+                                                        return (
+                                                          <div>
+                                                            {processText ? <Collapsible title="Process" preview={getFirstSentence(processText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(processText) ? processText.join('\n') : processText}</div></div></Collapsible> : null}
+                                                            {breakdownText ? <Collapsible title="Breakdown" preview={makePreview(breakdownText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(breakdownText) ? breakdownText.join('\n') : breakdownText}</div></div></Collapsible> : null}
+                                                            {resultText ? <Collapsible title="Outcome" preview={makePreview(resultText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(resultText) ? resultText.join('\n') : resultText}</div></div></Collapsible> : null}
+                                                            {refusesText ? <Collapsible title="Refuses" preview={makePreview(refusesText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(refusesText) ? refusesText.join('\n') : refusesText}</div></div></Collapsible> : null}
+                                                            {anchorsForBand && anchorsForBand.length ? (
+                                                              <Collapsible title="Anchors" preview={makePreview(anchorsForBand[0])} defaultOpen={false}>
+                                                                <div style={{ maxHeight: Math.max(60, innerMax), overflowY: 'auto' as any }}>
+                                                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                                    {anchorsForBand.map((a, ai) => (
+                                                                      <button key={ai} onClick={(e) => { e.stopPropagation(); }} style={{ padding: '6px 8px', borderRadius: 6, border: isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 12, marginRight: 8, marginBottom: 8 }}>{a}</button>
+                                                                    ))}
+                                                                  </div>
+                                                                </div>
+                                                              </Collapsible>
+                                                            ) : null}
+                                                          </div>
+                                                        );
+                                                      } catch (e) { return null; }
+                                                    })()}
+                                                  </div>
+                                                  {isSelected ? (
+                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, width: '100%', marginTop: 8 }}>
+                                                      <button aria-label="Decrease overall" className="stat-chev" onClick={(e) => { e.stopPropagation(); changeOverallBy(skill, -1); }} style={{ width: 40, height: 32, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18 }}>‹</button>
+                                                      <div style={{ fontWeight: 700 }}>{displayNum}</div>
+                                                      <button aria-label="Increase overall" className="stat-chev" onClick={(e) => { e.stopPropagation(); changeOverallBy(skill, 1); }} style={{ width: 40, height: 32, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18 }}>›</button>
+                                                    </div>
+                                                  ) : null}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
                                       </div>
-
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280' }}>
-                                        {bands.map((b: any, i: number) => (
-                                          <div key={`tick-${i}`} style={{ textAlign: 'center', flex: Math.max(1, (b.max - b.min)) }}>{b.min}</div>
-                                        ))}
-                                        <div style={{ textAlign: 'center' }}>{bands[bands.length - 1].max}</div>
-                                      </div>
-                                    </div>
-                                  );
+                                    );
+                                  } catch (e) { return null; }
                                 })()}
                               </div>
                             </div>
 
-                            {
-                              // Band adjacency panel: show previous/current/next summaries and pressure selector
-                            }
-                            <div style={{ marginTop: 10 }}>
-                              {(() => {
-                                try {
-                                  const skill = skillLabels[currentSkillIndex];
-                                  const vLookup = currentT == null ? Math.round(((bands[0].min || 0) + (bands[bands.length - 1].max || 50)) / 2) : Math.floor(Number(currentT));
-                                  const idx = bands.findIndex((bb: any) => vLookup >= bb.min && vLookup <= bb.max);
-                                  const curIdx = idx === -1 ? Math.max(0, Math.floor(bands.length / 2)) : idx;
-                                  const prevBand = bands[curIdx - 1] || null;
-                                  const curBand = bands[curIdx] || null;
-                                  const nextBand = bands[curIdx + 1] || null;
+                            {/* adjacency panel moved into slider layout above */}
 
-                                  const short = (b: any) => {
-                                    if (!b) return '';
-                                    return (b.description as string).split('\n').map((s: string) => s.trim()).join(' ').slice(0, 140);
-                                    if (Array.isArray(b.process) && b.process.length) return String(b.process[0]).slice(0, 140);
-                                    return '';
-                                  };
-
-                                  // compute fraction inside current band for gradient/pressure
-                                  const frac = curBand && vLookup != null ? Math.max(0, Math.min(1, (Number(vLookup) - curBand.min) / Math.max(1, (curBand.max - curBand.min)))) : 0.5;
-
-                                  // default pressure selection based on frac, can be overridden by coach
-                                  const inferredPressure = frac < 0.33 ? 'Breaks under moderate pressure' : (frac < 0.66 ? 'Breaks under sustained pressure' : 'Holds until high match leverage');
-                                  const selectedPressure = (pressureBySkill && pressureBySkill[skill]) || inferredPressure;
-
-                                  return (
-                                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                                        <div style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, background: '#fafafa', border: '1px solid #eee' }}>
-                                          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700 }}>← Leaning Toward {prevBand ? prevBand.name : '—'}</div>
-                                          <div style={{ marginTop: 6, color: '#374151', fontSize: 12 }}>{short(prevBand)}</div>
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, background: '#fff', border: '1px solid #eee' }}>
-                                          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700 }}>Current: {curBand ? curBand.name : '—'}</div>
-                                          <div style={{ marginTop: 6, color: '#374151', fontSize: 12 }}>{short(curBand)}</div>
-                                          <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}><strong>Breakdown requires:</strong> {selectedPressure}</div>
-                                          <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                                            {['Breaks under moderate pressure','Breaks under sustained pressure','Holds until high match leverage'].map((label) => (
-                                              <button key={label} onClick={() => setPressureBySkill((p) => ({ ...(p || {}), [skill]: label }))} style={{ padding: '6px 8px', background: selectedPressure === label ? '#111' : 'transparent', color: selectedPressure === label ? '#fff' : '#111', borderRadius: 6, border: '1px solid #e6e6e6', cursor: 'pointer', fontSize: 12 }}>{label.replace('Breaks under ', '').replace('Holds until ', '')}</button>
-                                            ))}
-                                          </div>
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, background: '#fafafa', border: '1px solid #eee' }}>
-                                          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700 }}>{nextBand ? nextBand.name : '—'} →</div>
-                                          <div style={{ marginTop: 6, color: '#374151', fontSize: 12 }}>{short(nextBand)}</div>
-                                        </div>
-                                      </div>
-
-                                      {/* Render subtle gradient on the slider band visualization by re-rendering band blocks with gradient for current band */}
-                                      <div style={{ display: 'flex', height: 8, borderRadius: 6, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.03)' }}>
-                                        {bands.map((b: any, i: number) => {
-                                          const span = Math.max(1, (b.max - b.min));
-                                          const base = computeBandColor(i, 0.5) || { background: '#e5e7eb' };
-                                          if (i === curIdx) {
-                                            const left = computeBandColor(i - 1 >= 0 ? i - 1 : i, 0.5)?.background || base.background;
-                                            const right = computeBandColor(i + 1 < bands.length ? i + 1 : i, 0.5)?.background || base.background;
-                                            return <div key={i} style={{ flex: span, background: `linear-gradient(90deg, ${left} 0%, ${base.background} 40%, ${right} 100%)` }} />;
-                                          }
-                                          return <div key={i} style={{ flex: span, background: base.background }} />;
-                                        })}
-                                      </div>
-                                    </div>
-                                  );
-                                } catch (e) { return null; }
-                              })()}
-                            </div>
-
-                            {selectedBand ? (
-                              (() => {
-                                const skill = skillLabels[currentSkillIndex];
-                                const decisionOpen = !!decisionPanelOpenBySkill[skill];
-                                const summary = typeof selectedBand.description === 'string' ? selectedBand.description : '';
-                                const shortSummary = summary.length > 220 ? summary.slice(0, 220).trim() + '…' : summary;
-                                return (
-                                  <div style={{ marginTop: 8, fontSize: 12, color: '#374151' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-                                      <div style={{ minWidth: 0 }}>
-                                        <div style={{ fontWeight: 700 }}>Short Summary</div>
-                                        <div style={{ color: '#374151', marginTop: 6, maxWidth: 420 }}>{shortSummary}</div>
-                                      </div>
-                                    </div>
-
-                                    <div style={{ marginTop: 8 }}>
-                                      <Collapsible title="What the process looks like" defaultOpen={false}>
-                                        {(selectedBand.process || []).map((s: any, idx: number) => <div key={`p-${idx}`}>• {s}</div>)}
-                                      </Collapsible>
-
-                                      <Collapsible title="When it breaks down" defaultOpen={false}>
-                                        {(selectedBand.breakdown || []).map((s: any, idx: number) => <div key={`b-${idx}`}>• {s}</div>)}
-                                      </Collapsible>
-
-                                      {selectedBand.outcomes && selectedBand.outcomes.length ? (
-                                        <Collapsible title="What results occur as a result" defaultOpen={false}>
-                                          {(selectedBand.outcomes || []).map((s: any, idx: number) => <div key={`o-${idx}`}>• {s}</div>)}
-                                        </Collapsible>
-                                      ) : null}
-
-                                      {selectedBand.anchors && selectedBand.anchors.length ? (
-                                        <Collapsible title="Anchors / common examples" defaultOpen={false}>
-                                          {(selectedBand.anchors || []).map((s: any, idx: number) => <div key={`a-${idx}`}>• {s}</div>)}
-                                        </Collapsible>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                );
-                              })()
-                            ) : (
-                              <div style={{ marginTop: 8, color: '#6b7280' }}>No narrative available</div>
-                            )}
+                            {/* per-band collapsibles are rendered inside the adjacency boxes above */}
                           </div>
                         );
                       } catch (e) {

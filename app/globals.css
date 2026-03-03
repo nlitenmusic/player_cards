@@ -430,12 +430,17 @@ button {
   appearance: none !important;
   background: transparent !important;
   border: none !important;
+  /* Preserve inherited color so chevrons match surrounding text/selected state */
   color: inherit !important;
   padding: 0 8px !important;
   height: 100% !important;
   cursor: pointer !important;
   box-shadow: none !important;
   outline: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
 }
 .skill-panel .stat-chev:focus {
   outline: none !important;
