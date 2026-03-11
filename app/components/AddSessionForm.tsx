@@ -53,15 +53,24 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [expandedAnchors, setExpandedAnchors] = useState<Record<string, boolean>>({});
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [decisionPanelOpenBySkill, setDecisionPanelOpenBySkill] = useState<Record<string, boolean>>({});
+  const [openSectionByBand, setOpenSectionByBand] = useState<Record<string, string | null>>({});
 
-  function Collapsible({ title, children, defaultOpen = false, preview }: { title: string; children: React.ReactNode; defaultOpen?: boolean; preview?: string }) {
-    const [open, setOpen] = useState<boolean>(defaultOpen);
+  function Collapsible({ title, children, defaultOpen = false, preview, open, onToggle }: { title: string; children: React.ReactNode; defaultOpen?: boolean; preview?: string; open?: boolean; onToggle?: (v: boolean) => void }) {
+    const isControlled = typeof open !== 'undefined';
+    const [internalOpen, setInternalOpen] = useState<boolean>(defaultOpen);
+    const effectiveOpen = isControlled ? (open as boolean) : internalOpen;
+    function toggle(e?: React.MouseEvent) {
+      if (e) e.stopPropagation();
+      if (isControlled) {
+        try { onToggle && onToggle(!effectiveOpen); } catch (e) {}
+      } else setInternalOpen((s) => !s);
+    }
     return (
       <div style={{ marginBottom: 10 }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setOpen((o) => !o); e.preventDefault(); } }}
-          aria-expanded={open}
+          <button
+          onClick={toggle}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); toggle(); e.preventDefault(); } }}
+          aria-expanded={effectiveOpen}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -74,12 +83,12 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
             fontSize: 13,
             fontWeight: 700,
           }}
-        >
-          <span style={{ fontSize: 12 }}>{open ? '▾' : '▸'}</span>
+          >
+          <span style={{ fontSize: 12 }}>{effectiveOpen ? '▾' : '▸'}</span>
           <span>{title}</span>
           {preview ? <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8, maxWidth: 240, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2 as any, WebkitBoxOrient: 'vertical' as any, lineHeight: '1.2em' }}>{preview}</span> : null}
         </button>
-        {open ? <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>{children}</div> : null}
+        {effectiveOpen ? <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>{children}</div> : null}
       </div>
     );
   }
@@ -1265,21 +1274,108 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                           return nl.replace(/\s+/g, ' ').trim();
                                                         };
                                                         const innerMax = Math.max(80, BAND_CARD_HEIGHT - 140);
+                                                        const bandKey = `band-${i}`;
+                                                        const currentOpen = openSectionByBand[bandKey] || null;
+                                                        const openSection = (section: string) => setOpenSectionByBand((s) => ({ ...s, [bandKey]: section }));
+                                                        const closeSection = () => setOpenSectionByBand((s) => ({ ...s, [bandKey]: null }));
+                                                        if (currentOpen) {
+                                                          return (
+                                                            <div>
+                                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                                <div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151', fontWeight: 700 }}>{currentOpen}</div>
+                                                                <button onClick={(e) => { e.stopPropagation(); closeSection(); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b7280' }}>✕</button>
+                                                              </div>
+                                                              {currentOpen === 'Process' ? (
+                                                                <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}>
+                                                                  {(() => {
+                                                                    const lines = Array.isArray(processText)
+                                                                      ? processText
+                                                                      : (typeof processText === 'string'
+                                                                        ? (processText.includes('\n') ? processText.split('\n') : (processText.match(/[^\.?!]+[\.?!]*/g) || [processText]))
+                                                                        : [String(processText)]);
+                                                                    return lines.filter(Boolean).map((ln, i) => (
+                                                                      <div key={i} style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151', marginBottom: 8 }}>{ln.trim()}</div>
+                                                                    ));
+                                                                  })()}
+                                                                </div>
+                                                              ) : null}
+                                                              {currentOpen === 'Breakdown' ? (
+                                                                <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}>
+                                                                  {(() => {
+                                                                    const lines = Array.isArray(breakdownText)
+                                                                      ? breakdownText
+                                                                      : (typeof breakdownText === 'string'
+                                                                        ? (breakdownText.includes('\n') ? breakdownText.split('\n') : (breakdownText.match(/[^\.?!]+[\.?!]*/g) || [breakdownText]))
+                                                                        : [String(breakdownText)]);
+                                                                    return lines.filter(Boolean).map((ln, i) => (
+                                                                      <div key={i} style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151', marginBottom: 8 }}>{ln.trim()}</div>
+                                                                    ));
+                                                                  })()}
+                                                                </div>
+                                                              ) : null}
+                                                              {currentOpen === 'Outcome' ? (
+                                                                <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}>
+                                                                  {(() => {
+                                                                    const lines = Array.isArray(resultText)
+                                                                      ? resultText
+                                                                      : (typeof resultText === 'string'
+                                                                        ? (resultText.includes('\n') ? resultText.split('\n') : (resultText.match(/[^\.?!]+[\.?!]*/g) || [resultText]))
+                                                                        : [String(resultText)]);
+                                                                    return lines.filter(Boolean).map((ln, i) => (
+                                                                      <div key={i} style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151', marginBottom: 8 }}>{ln.trim()}</div>
+                                                                    ));
+                                                                  })()}
+                                                                </div>
+                                                              ) : null}
+                                                              {currentOpen === 'Refuses' ? (
+                                                                <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}>
+                                                                  {(() => {
+                                                                    const lines = Array.isArray(refusesText)
+                                                                      ? refusesText
+                                                                      : (typeof refusesText === 'string'
+                                                                        ? (refusesText.includes('\n') ? refusesText.split('\n') : (refusesText.match(/[^\.?!]+[\.?!]*/g) || [refusesText]))
+                                                                        : [String(refusesText)]);
+                                                                    return lines.filter(Boolean).map((ln, i) => (
+                                                                      <div key={i} style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151', marginBottom: 8 }}>{ln.trim()}</div>
+                                                                    ));
+                                                                  })()}
+                                                                </div>
+                                                              ) : null}
+                                                              {currentOpen === 'Anchors' ? (
+                                                                <div style={{ maxHeight: innerMax, overflowY: 'auto' as any, marginBottom: 8 }}>
+                                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                                      {anchorsForBand.map((a, ai) => (
+                                                                        <div key={ai} style={{ padding: '8px', borderRadius: 6, border: isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(255,255,255,0.04)' : 'transparent', color: 'inherit', fontSize: 13, whiteSpace: 'pre-wrap' as any, textAlign: 'left' as any, lineHeight: '1.25em' }}>{a}</div>
+                                                                      ))}
+                                                                    </div>
+                                                                </div>
+                                                              ) : null}
+                                                            </div>
+                                                          );
+                                                        }
                                                         return (
                                                           <div>
-                                                            {processText ? <Collapsible title="Process" preview={getFirstSentence(processText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(processText) ? processText.join('\n') : processText}</div></div></Collapsible> : null}
-                                                            {breakdownText ? <Collapsible title="Breakdown" preview={makePreview(breakdownText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(breakdownText) ? breakdownText.join('\n') : breakdownText}</div></div></Collapsible> : null}
-                                                            {resultText ? <Collapsible title="Outcome" preview={makePreview(resultText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(resultText) ? resultText.join('\n') : resultText}</div></div></Collapsible> : null}
-                                                            {refusesText ? <Collapsible title="Refuses" preview={makePreview(refusesText)} defaultOpen={false}><div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(refusesText) ? refusesText.join('\n') : refusesText}</div></div></Collapsible> : null}
+                                                            <Collapsible title="Process" preview={getFirstSentence(processText)} open={currentOpen === 'Process'} onToggle={(v) => { if (v) openSection('Process'); else closeSection(); }}>
+                                                              <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(processText) ? processText.join('\n') : processText}</div></div>
+                                                            </Collapsible>
+                                                            <Collapsible title="Breakdown" preview={makePreview(breakdownText)} open={currentOpen === 'Breakdown'} onToggle={(v) => { if (v) openSection('Breakdown'); else closeSection(); }}>
+                                                              <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(breakdownText) ? breakdownText.join('\n') : breakdownText}</div></div>
+                                                            </Collapsible>
+                                                            <Collapsible title="Outcome" preview={makePreview(resultText)} open={currentOpen === 'Outcome'} onToggle={(v) => { if (v) openSection('Outcome'); else closeSection(); }}>
+                                                              <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(resultText) ? resultText.join('\n') : resultText}</div></div>
+                                                            </Collapsible>
+                                                            <Collapsible title="Refuses" preview={makePreview(refusesText)} open={currentOpen === 'Refuses'} onToggle={(v) => { if (v) openSection('Refuses'); else closeSection(); }}>
+                                                              <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(refusesText) ? refusesText.join('\n') : refusesText}</div></div>
+                                                            </Collapsible>
                                                             {anchorsForBand && anchorsForBand.length ? (
-                                                              <Collapsible title="Anchors" preview={makePreview(anchorsForBand[0])} defaultOpen={false}>
-                                                                <div style={{ maxHeight: Math.max(30, Math.floor(innerMax / 2)), overflowY: 'auto' as any, marginBottom: 8 }}>
-                                                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                                                      {anchorsForBand.map((a, ai) => (
-                                                                        <button key={ai} onClick={(e) => { e.stopPropagation(); }} style={{ padding: '6px 8px', borderRadius: 6, border: isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(255,255,255,0.06)' : 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 12, marginRight: 8, marginBottom: 6 }}>{a}</button>
-                                                                      ))}
-                                                                     </div>
-                                                                   </div>
+                                                              <Collapsible title="Anchors" preview={makePreview(anchorsForBand[0])} open={currentOpen === 'Anchors'} onToggle={(v) => { if (v) openSection('Anchors'); else closeSection(); }}>
+                                                                <div style={{ maxHeight: innerMax, overflowY: 'auto' as any, marginBottom: 8 }}>
+                                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                                    {anchorsForBand.map((a, ai) => (
+                                                                      <div key={ai} style={{ padding: '8px', borderRadius: 6, border: isSelected ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)', background: isSelected ? 'rgba(255,255,255,0.04)' : 'transparent', color: 'inherit', fontSize: 13, whiteSpace: 'pre-wrap' as any, textAlign: 'left' as any, lineHeight: '1.25em' }}>{a}</div>
+                                                                    ))}
+                                                                  </div>
+                                                                </div>
                                                               </Collapsible>
                                                             ) : null}
                                                           </div>
