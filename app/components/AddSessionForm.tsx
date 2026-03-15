@@ -55,7 +55,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
   const [decisionPanelOpenBySkill, setDecisionPanelOpenBySkill] = useState<Record<string, boolean>>({});
   const [openSectionByBand, setOpenSectionByBand] = useState<Record<string, string | null>>({});
 
-  function Collapsible({ title, children, defaultOpen = false, preview, open, onToggle }: { title: string; children: React.ReactNode; defaultOpen?: boolean; preview?: string; open?: boolean; onToggle?: (v: boolean) => void }) {
+  function Collapsible({ title, children, defaultOpen = false, preview, open, onToggle, buttonColor = '#111', previewColor = '#6b7280' }: { title: string; children: React.ReactNode; defaultOpen?: boolean; preview?: string; open?: boolean; onToggle?: (v: boolean) => void; buttonColor?: string; previewColor?: string }) {
     const isControlled = typeof open !== 'undefined';
     const [internalOpen, setInternalOpen] = useState<boolean>(defaultOpen);
     const effectiveOpen = isControlled ? (open as boolean) : internalOpen;
@@ -79,14 +79,14 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
             border: 'none',
             padding: 0,
             cursor: 'pointer',
-            color: '#111',
+            color: buttonColor,
             fontSize: 13,
             fontWeight: 700,
           }}
           >
           <span style={{ fontSize: 12 }}>{effectiveOpen ? '▾' : '▸'}</span>
           <span>{title}</span>
-          {preview ? <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8, maxWidth: 240, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2 as any, WebkitBoxOrient: 'vertical' as any, lineHeight: '1.2em' }}>{preview}</span> : null}
+          {preview ? <span style={{ fontSize: 12, color: previewColor, marginLeft: 8, maxWidth: 240, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2 as any, WebkitBoxOrient: 'vertical' as any, lineHeight: '1.2em' }}>{preview}</span> : null}
         </button>
         {effectiveOpen ? <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>{children}</div> : null}
       </div>
@@ -1197,6 +1197,9 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                 }
                                               }
                                               const displayNum = computedOverall == null || Number.isNaN(Number(computedOverall)) ? (currentT ?? midpoint) : Math.round(Number(computedOverall));
+                                              const selectedPrimaryText = 'rgba(255,255,255,0.98)';
+                                              const selectedSecondaryText = 'rgba(255,255,255,0.92)';
+                                              const selectedPreviewText = 'rgba(255,255,255,0.8)';
                                               return (
                                                 <div
                                                   key={`band-reg-${b.min}-${b.max}`}
@@ -1217,7 +1220,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                       borderRadius: 8,
                                                       border: isSelected ? '2px solid rgba(0,0,0,0.08)' : '1px solid #e6e6e6',
                                                       background: isSelected ? heat.background : '#fff',
-                                                      color: isSelected ? heat.color : '#111',
+                                                      color: isSelected ? selectedSecondaryText : '#111',
                                                       cursor: 'pointer',
                                                       overflow: 'hidden',
                                                     }}
@@ -1225,7 +1228,7 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                 >
                                                   <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                                      <div style={{ fontWeight: 700, fontSize: 15 }}>{b.name} <span style={{ fontSize: 12, color: isSelected ? heat.color : '#6b7280', marginLeft: 6 }}>({formatRange(b.min, b.max)})</span></div>
+                                                      <div style={{ fontWeight: 700, fontSize: 15 }}>{b.name} <span style={{ fontSize: 12, color: isSelected ? selectedPreviewText : '#6b7280', marginLeft: 6 }}>({formatRange(b.min, b.max)})</span></div>
                                                       <div style={{ display: 'flex', alignItems: 'center' }}>
                                                         {(isSelected || (displayNum >= b.min && displayNum <= b.max)) ? (
                                                           <div
@@ -1237,8 +1240,8 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                               gap: 8,
                                                               padding: '4px 8px',
                                                               borderRadius: 14,
-                                                              background: isSelected ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
-                                                              color: isSelected ? heat.color : '#374151',
+                                                              background: isSelected ? 'rgba(255,255,255,0.14)' : '#f3f4f6',
+                                                              color: isSelected ? selectedPrimaryText : '#374151',
                                                               fontSize: 12,
                                                               boxShadow: '0 1px 0 rgba(0,0,0,0.02)'
                                                             }}
@@ -1355,20 +1358,20 @@ export default React.forwardRef(function AddSessionForm({ player, sessionId: ses
                                                         }
                                                         return (
                                                           <div>
-                                                            <Collapsible title="Process" preview={getFirstSentence(processText)} open={currentOpen === 'Process'} onToggle={(v) => { if (v) openSection('Process'); else closeSection(); }}>
+                                                            <Collapsible title="Process" preview={getFirstSentence(processText)} open={currentOpen === 'Process'} onToggle={(v) => { if (v) openSection('Process'); else closeSection(); }} buttonColor={isSelected ? selectedPrimaryText : '#111'} previewColor={isSelected ? selectedPreviewText : '#6b7280'}>
                                                               <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(processText) ? processText.join('\n') : processText}</div></div>
                                                             </Collapsible>
-                                                            <Collapsible title="Breakdown" preview={makePreview(breakdownText)} open={currentOpen === 'Breakdown'} onToggle={(v) => { if (v) openSection('Breakdown'); else closeSection(); }}>
+                                                            <Collapsible title="Breakdown" preview={makePreview(breakdownText)} open={currentOpen === 'Breakdown'} onToggle={(v) => { if (v) openSection('Breakdown'); else closeSection(); }} buttonColor={isSelected ? selectedPrimaryText : '#111'} previewColor={isSelected ? selectedPreviewText : '#6b7280'}>
                                                               <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(breakdownText) ? breakdownText.join('\n') : breakdownText}</div></div>
                                                             </Collapsible>
-                                                            <Collapsible title="Outcome" preview={makePreview(resultText)} open={currentOpen === 'Outcome'} onToggle={(v) => { if (v) openSection('Outcome'); else closeSection(); }}>
+                                                            <Collapsible title="Outcome" preview={makePreview(resultText)} open={currentOpen === 'Outcome'} onToggle={(v) => { if (v) openSection('Outcome'); else closeSection(); }} buttonColor={isSelected ? selectedPrimaryText : '#111'} previewColor={isSelected ? selectedPreviewText : '#6b7280'}>
                                                               <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(resultText) ? resultText.join('\n') : resultText}</div></div>
                                                             </Collapsible>
-                                                            <Collapsible title="Refuses" preview={makePreview(refusesText)} open={currentOpen === 'Refuses'} onToggle={(v) => { if (v) openSection('Refuses'); else closeSection(); }}>
+                                                            <Collapsible title="Refuses" preview={makePreview(refusesText)} open={currentOpen === 'Refuses'} onToggle={(v) => { if (v) openSection('Refuses'); else closeSection(); }} buttonColor={isSelected ? selectedPrimaryText : '#111'} previewColor={isSelected ? selectedPreviewText : '#6b7280'}>
                                                               <div style={{ maxHeight: innerMax, overflowY: 'auto' as any }}><div style={{ fontSize: 13, color: isSelected ? 'rgba(255,255,255,0.95)' : '#374151' }}>{Array.isArray(refusesText) ? refusesText.join('\n') : refusesText}</div></div>
                                                             </Collapsible>
                                                             {anchorsForBand && anchorsForBand.length ? (
-                                                              <Collapsible title="Anchors" preview={makePreview(anchorsForBand[0])} open={currentOpen === 'Anchors'} onToggle={(v) => { if (v) openSection('Anchors'); else closeSection(); }}>
+                                                              <Collapsible title="Anchors" preview={makePreview(anchorsForBand[0])} open={currentOpen === 'Anchors'} onToggle={(v) => { if (v) openSection('Anchors'); else closeSection(); }} buttonColor={isSelected ? selectedPrimaryText : '#111'} previewColor={isSelected ? selectedPreviewText : '#6b7280'}>
                                                                 <div style={{ maxHeight: innerMax, overflowY: 'auto' as any, marginBottom: 8 }}>
                                                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                                                     {anchorsForBand.map((a, ai) => (
